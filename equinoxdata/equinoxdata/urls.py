@@ -14,9 +14,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+# urls.py del proyecto
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.shortcuts import redirect
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
+    # path('usuarios/', include('usuarios.urls')),
+    # Otras rutas de tu proyecto
+    path('', lambda request: redirect('usuarios:login')),  # Redirige la raíz al login
+    path('usuarios/', include('usuarios.urls')),  # Incluye las URLs de la app 'usuarios'
 ]
+
+# urls.py en el proyecto principal
+
+
