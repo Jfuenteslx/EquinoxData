@@ -1,21 +1,104 @@
-<!-- templates/usuarios/administrar_usuarios.html -->
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Administrar Usuarios</title>
-</head>
-<body>
-    <h2>Administrar Usuarios</h2>
-    <a href="{% url 'crear_usuario' %}">Crear Nuevo Usuario</a>
-    <ul>
+{% comment %} {% extends 'base.html' %}
+{% block content %}
+
+<h2>Administrar Usuarios</h2>
+
+<!-- Tabla de usuarios -->
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
         {% for usuario in usuarios %}
-            <li>
-                {{ usuario.username }} - {{ usuario.correo }}
-                <a href="{% url 'editar_usuario' usuario.id %}">Editar</a>
-                <a href="{% url 'eliminar_usuario' usuario.id %}">Eliminar</a>
-            </li>
+        <tr>
+            <td>{{ usuario.id }}</td>
+            <td>{{ usuario.username }}</td>
+            <td>{{ usuario.email }}</td>
+            <td>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#editarUsuarioModal{{ usuario.id }}">Editar</button>
+                <button class="btn btn-danger" data-toggle="modal" data-target="#eliminarUsuarioModal{{ usuario.id }}">Eliminar</button>
+            </td>
+        </tr>
         {% endfor %}
-    </ul>
-</body>
-</html>
+    </tbody>
+</table>
+
+<!-- Botón para crear usuario -->
+<button class="btn btn-success" data-toggle="modal" data-target="#crearUsuarioModal">Crear Usuario</button>
+
+<!-- Modal Crear Usuario -->
+<div class="modal fade" id="crearUsuarioModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form method="POST" action="">
+                {% csrf_token %}
+                {{ crear_form.as_p }}
+                <button type="submit" class="btn btn-primary" name="crear_usuario">Crear</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales Editar y Eliminar Usuario por cada usuario -->
+{% for usuario in usuarios %}
+<div class="modal fade" id="editarUsuarioModal{{ usuario.id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form method="POST" action="">
+                {% csrf_token %}
+                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                {{ editar_form.as_p }}
+                <button type="submit" class="btn btn-primary" name="editar_usuario">Guardar cambios</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="eliminarUsuarioModal{{ usuario.id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form method="POST" action="">
+                {% csrf_token %}
+                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                <p>¿Estás seguro de que deseas eliminar al usuario {{ usuario.username }}?</p>
+                <button type="submit" class="btn btn-danger" name="eliminar_usuario">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %} {% endcomment %}
+
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Correo</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>CI</th>
+            <th>Rol</th>
+            <th>Última sesión</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for usuario in usuarios_data %}
+            <tr>
+                <td>{{ usuario.id }}</td>
+                <td>{{ usuario.correo }}</td>
+                <td>{{ usuario.personal__nombre }}</td>
+                <td>{{ usuario.personal__apellido }}</td>
+                <td>{{ usuario.personal__CI }}</td>
+                <td>{{ usuario.personal__rol }}</td>
+                <td>{{ usuario.ultima_sesion|date:"d/m/Y H:i" }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

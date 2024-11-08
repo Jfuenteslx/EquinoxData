@@ -88,7 +88,8 @@ scratch. This page gets rid of all links and provides the needed markup only.
                     </div>
                     <div class="info">
                         <a href="#" class="d-block font-weight-bold">Super Admin</a>
-                        <a href="{% url 'logout' %}">Cerrar sesión</a> <!-- Agregar enlace para cerrar sesión -->
+                        <a href="{% url 'usuarios:logout' %}">Cerrar sesión</a>
+          
                         <!-- aca va el cargo -->
                     </div>
                 </div>
@@ -252,127 +253,130 @@ scratch. This page gets rid of all links and provides the needed markup only.
              <!-- Sidebar Menu -->
 <nav class="mt-2">
     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-        <!-- link de inicio -->
-        <li class="nav-item">
-            <a href="{% url 'inicio' %}" class="nav-link">
-                <i class="nav-icon fas fa-home"></i>
-                <p>Inicio</p>
-            </a>
-        </li>
+                        <!-- link de inicio -->
+                        <li class="nav-item">
+                            <a class="nav-link">
+                                <i class="nav-icon fas fa-home"></i>
+                                <p>
+                                    Inicio
+                                </p>
+                            </a>
+                        </li>
         <!-- menu ventas -->
-        <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-cash-register"></i>
-                <p>Ventas <i class="right fas fa-angle-left"></i></p>
-            </a>
-            <ul class="nav nav-treeview">
-                <li class="nav-item">
-                    <a href="{% url 'nueva_venta' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Nueva Venta</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'editar_comanda' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Editar comanda</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'reportes_ventas' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Reportes</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'consolidar' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Consolidar</p>
-                    </a>
-                </li>
-            </ul>
-        </li>
-        <!-- menu pedidos -->
+<li class="nav-item has-treeview">
+    <a href="#" class="nav-link">
+        <i class="nav-icon fas fa-cash-register"></i>
+        <p>Ventas <i class="right fas fa-angle-left"></i></p>
+    </a>
+    <ul class="nav nav-treeview">
         <li class="nav-item">
-            <a href="{% url 'pedidos' %}" class="nav-link">
-                <i class="fas fa-glass-cheers nav-icon"></i>
-                <p>Pedidos</p>
-                <i class="fas fa-angle-left right"></i>
-                <span class="badge badge-danger right">6</span>
-            </a>
-        </li>
-        <!-- menu inventarios -->
-        <li class="nav-item has-treeview">
             <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-copy"></i>
-                <p>Inventario <i class="fas fa-angle-left right"></i></p>
+                <i class="far fa-circle nav-icon"></i>
+                <p>Nueva Venta</p>
             </a>
-            <ul class="nav nav-treeview">
-                <li class="nav-item">
-                    <a href="{% url 'registrar_compras' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Registrar Compras</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'registrar_saldos' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Registrar Saldos</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'productos' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Productos</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'reportes_inventario' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Reportes</p>
-                    </a>
-                </li>
-            </ul>
         </li>
-        <!-- menu agenda -->
-        <li class="nav-item has-treeview">
+        <li class="nav-item">
             <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-calendar-check"></i>
-                <p>Agenda <i class="right fas fa-angle-left"></i></p>
+                <i class="far fa-circle nav-icon"></i>
+                <p>Editar comanda</p>
             </a>
-            <ul class="nav nav-treeview">
-                <li class="nav-item">
-                    <a href="{% url 'administrar_eventos' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Administrar eventos</p>
-                    </a>
-                </li>
-            </ul>
         </li>
-        <!-- menu reportes -->
-        <li class="nav-item has-treeview">
+        <li class="nav-item">
             <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-chart-pie"></i>
-                <p>Reportes y análisis <i class="right fas fa-angle-left"></i></p>
+                <i class="far fa-circle nav-icon"></i>
+                <p>Reportes</p>
             </a>
-            <ul class="nav nav-treeview">
-                <li class="nav-item">
-                    <a href="{% url 'consultar_casos' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Consultar Casos</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'analizar_eventos' %}" class="nav-link">
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Analizar Eventos</p>
-                    </a>
-                </li>
-            </ul>
         </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Consolidar</p>
+            </a>
+        </li>
+    </ul>
+</li>
+<!-- menu pedidos -->
+<li class="nav-item">
+    <a href="#" class="nav-link">
+        <i class="fas fa-glass-cheers nav-icon"></i>
+        <p>Pedidos</p>
+        <i class="fas fa-angle-left right"></i>
+        <span class="badge badge-danger right">6</span>
+    </a>
+</li>
+<!-- menu inventarios -->
+<li class="nav-item has-treeview">
+    <a href="#" class="nav-link">
+        <i class="nav-icon fas fa-copy"></i>
+        <p>Inventario <i class="fas fa-angle-left right"></i></p>
+    </a>
+    <ul class="nav nav-treeview">
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Registrar Compras</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Registrar Saldos</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Productos</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Reportes</p>
+            </a>
+        </li>
+    </ul>
+</li>
+<!-- menu agenda -->
+<li class="nav-item has-treeview">
+    <a href="#" class="nav-link">
+        <i class="nav-icon fas fa-calendar-check"></i>
+        <p>Agenda <i class="right fas fa-angle-left"></i></p>
+    </a>
+    <ul class="nav nav-treeview">
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Administrar eventos</p>
+            </a>
+        </li>
+    </ul>
+</li>
+<!-- menu reportes -->
+<li class="nav-item has-treeview">
+    <a href="#" class="nav-link">
+        <i class="nav-icon fas fa-chart-pie"></i>
+        <p>Reportes y análisis <i class="right fas fa-angle-left"></i></p>
+    </a>
+    <ul class="nav nav-treeview">
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Consultar Casos</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Analizar Eventos</p>
+            </a>
+        </li>
+    </ul>
+</li>
+
         <!-- menu personal -->
         <li class="nav-item">
-            <a href="{% url 'personal' %}" class="nav-link">
+            <a href="#" class="nav-link">
                 <i class="nav-icon fas fa-user"></i>
                 <p>Personal</p>
             </a>

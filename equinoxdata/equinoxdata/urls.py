@@ -16,18 +16,22 @@ Including another URLconf
 """
 
 # urls.py del proyecto
+# from django.contrib import admin
+# from django.urls import path, include
+
+# urlpatterns = [
+#     path('admin/', admin.site.urls),
+#     path('usuarios/', include('usuarios.urls')),
+#     # Otras rutas de tu proyecto
+# ]
+
+# urls.py en el proyecto principal
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 
 urlpatterns = [
-    # path('admin/', admin.site.urls),
-    # path('usuarios/', include('usuarios.urls')),
-    # Otras rutas de tu proyecto
+    path('admin/', admin.site.urls),
     path('', lambda request: redirect('usuarios:login')),  # Redirige la raíz al login
     path('usuarios/', include('usuarios.urls')),  # Incluye las URLs de la app 'usuarios'
 ]
-
-# urls.py en el proyecto principal
-
-

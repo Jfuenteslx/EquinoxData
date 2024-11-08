@@ -136,4 +136,10 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 
 
 # settings.py
-LOGIN_URL = 'login'  # Nombre de la URL de inicio de sesión
+LOGIN_URL = 'usuarios:login'
+# settings.py
+
+LOGIN_REDIRECT_URL = '/usuarios/inicio/'  # O usa el nombre de URL si prefieres
+
+# settings.py
+LOGOUT_REDIRECT_URL = 'usuarios:login'
