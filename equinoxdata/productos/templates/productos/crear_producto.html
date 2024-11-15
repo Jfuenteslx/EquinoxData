@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título de la página -->
+    <h2 class="text-center mb-4">Crear Nuevo Producto</h2>
+    
+    <!-- Formulario de creación de producto -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <form method="post" class="card p-4 shadow-sm">
+                {% csrf_token %}
+                
+                <!-- Renderizado de los campos del formulario con clases de Bootstrap -->
+                <div class="form-errors mb-3">
+                    {{ form.non_field_errors }}
+                </div>
+
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}" class="font-weight-bold">{{ field.label }}</label>
+                        {{ field }}
+                        
+                        <!-- Errores de campo -->
+                        {% if field.errors %}
+                            <div class="text-danger">
+                                {% for error in field.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                <!-- Botones de acción -->
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">Crear Producto</button>
+                    <a href="{% url 'productos:listar_productos' %}" class="btn btn-secondary">Volver a la Lista</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

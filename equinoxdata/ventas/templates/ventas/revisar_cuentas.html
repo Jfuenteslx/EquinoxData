@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título principal -->
+    <h1 class="text-center mb-4">Revisión de Cuentas</h1>
+
+    <!-- Tabla de cuentas -->
+    {% if cuentas %}
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Detalle de Ventas</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cuenta in cuentas %}
+                        <tr>
+                            <td>{{ cuenta.fecha }}</td>
+                            <td>
+                                <!-- Muestra los detalles de la cuenta como un bloque preformateado -->
+                                <pre>{{ cuenta.cuenta|json_script:"cuenta" }}</pre>
+                            </td>
+                            <td>
+                                <!-- Botón para consolidar -->
+                                <form method="POST" action="{% url 'ventas:consolidar_cuenta' cuenta.fecha %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm">Consolidar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <!-- Mensaje cuando no hay cuentas -->
+        <p class="text-center text-muted">No hay cuentas disponibles.</p>
+    {% endif %}
+</div>
+{% endblock %}

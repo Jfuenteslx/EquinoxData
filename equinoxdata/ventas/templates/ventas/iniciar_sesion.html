@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título de la página -->
+    <h2 class="text-center mb-4">Iniciar Nueva Sesión de Trabajo</h2>
+
+    <!-- Formulario para iniciar sesión -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <form method="post" class="card p-4">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mensaje de error, si existe -->
+    {% if error %}
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-6">
+            <div class="alert alert-danger text-center">
+                {{ error }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

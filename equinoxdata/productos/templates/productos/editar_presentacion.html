@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <!-- Título de la página -->
+        <h2 class="text-center mb-4">Editar Presentación de Producto</h2>
+
+        <!-- Formulario de edición de presentación -->
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <form method="post" class="card p-4">
+                    {% csrf_token %}
+                    
+                    <!-- Renderizado de los campos del formulario con clases de Bootstrap -->
+                    {{ form.non_field_errors }}
+                    {% for field in form %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- Botones de acción -->
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-success">Guardar Cambios</button>
+                        <a href="{% url 'productos:listar_presentaciones' %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

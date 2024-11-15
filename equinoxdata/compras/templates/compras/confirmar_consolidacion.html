@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título de la página -->
+    <h2 class="text-center mb-4">Confirmación de Consolidación de Pedido</h2>
+    
+    <!-- Descripción -->
+    <p class="text-center">Estás a punto de consolidar el siguiente pedido:</p>
+    
+    <!-- Lista de productos en el pedido -->
+    <ul class="list-group mb-4">
+        {% for item in pedido_data %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>{{ item.producto }} - {{ item.cantidad }} unidades</span>
+                <span class="badge badge-primary badge-pill">${{ item.precio }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+    
+    <!-- Formulario de confirmación -->
+    <div class="text-center">
+        <form method="POST" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success mr-2">Confirmar Consolidación</button>
+        </form>
+        <a href="{% url 'compras:consolidar_pedido' %}" class="btn btn-danger">Cancelar</a>
+    </div>
+</div>
+{% endblock %}

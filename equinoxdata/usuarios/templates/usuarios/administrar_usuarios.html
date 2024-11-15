@@ -1,104 +1,131 @@
-{% comment %} {% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block content %}
-
-<h2>Administrar Usuarios</h2>
-
-<!-- Tabla de usuarios -->
-<table class="table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for usuario in usuarios %}
-        <tr>
-            <td>{{ usuario.id }}</td>
-            <td>{{ usuario.username }}</td>
-            <td>{{ usuario.email }}</td>
-            <td>
-                <button class="btn btn-primary" data-toggle="modal" data-target="#editarUsuarioModal{{ usuario.id }}">Editar</button>
-                <button class="btn btn-danger" data-toggle="modal" data-target="#eliminarUsuarioModal{{ usuario.id }}">Eliminar</button>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- Botón para crear usuario -->
-<button class="btn btn-success" data-toggle="modal" data-target="#crearUsuarioModal">Crear Usuario</button>
-
-<!-- Modal Crear Usuario -->
-<div class="modal fade" id="crearUsuarioModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form method="POST" action="">
-                {% csrf_token %}
-                {{ crear_form.as_p }}
-                <button type="submit" class="btn btn-primary" name="crear_usuario">Crear</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modales Editar y Eliminar Usuario por cada usuario -->
-{% for usuario in usuarios %}
-<div class="modal fade" id="editarUsuarioModal{{ usuario.id }}" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form method="POST" action="">
-                {% csrf_token %}
-                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                {{ editar_form.as_p }}
-                <button type="submit" class="btn btn-primary" name="editar_usuario">Guardar cambios</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="eliminarUsuarioModal{{ usuario.id }}" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form method="POST" action="">
-                {% csrf_token %}
-                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                <p>¿Estás seguro de que deseas eliminar al usuario {{ usuario.username }}?</p>
-                <button type="submit" class="btn btn-danger" name="eliminar_usuario">Eliminar</button>
-            </form>
-        </div>
-    </div>
-</div>
-{% endfor %}
-
-{% endblock %} {% endcomment %}
-
-
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Correo</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>CI</th>
-            <th>Rol</th>
-            <th>Última sesión</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for usuario in usuarios_data %}
+<div class="container">
+    <h2>Administrar Usuarios</h2>
+    
+    <!-- Botón para abrir el modal de creación de usuario -->
+    <button class="btn btn-primary" data-toggle="modal" data-target="#createModal">Crear Usuario</button>
+    <!-- Tabla de Usuarios -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Rol</th>
+                <th>CI</th>
+                <th>Activo</th>
+                <th>Staff</th>
+                <th>Último Inicio</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
             <tr>
                 <td>{{ usuario.id }}</td>
-                <td>{{ usuario.correo }}</td>
-                <td>{{ usuario.personal__nombre }}</td>
-                <td>{{ usuario.personal__apellido }}</td>
-                <td>{{ usuario.personal__CI }}</td>
-                <td>{{ usuario.personal__rol }}</td>
-                <td>{{ usuario.ultima_sesion|date:"d/m/Y H:i" }}</td>
+                <td>{{ usuario.username }}</td>
+                <td>{{ usuario.first_name }}</td>
+                <td>{{ usuario.last_name }}</td>
+                <td>{{ usuario.rol }}</td>
+                <td>{{ usuario.CI }}</td>
+                <td>{{ usuario.is_active }}</td>
+                <td>{{ usuario.is_staff }}</td>
+                <td>{{ usuario.last_login|date:"Y-m-d H:i" }}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#editModal-{{ usuario.id }}">Editar</button>
+                </td>
             </tr>
-        {% endfor %}
-    </tbody>
-</table>
+
+            <!-- Modal para editar usuario -->
+            <div class="modal fade" id="editModal-{{ usuario.id }}" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post" action="{% url 'usuarios:administrar_usuarios' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editModalLabel">Editar Usuario</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="username">Nombre de usuario:</label>
+                                <input type="text" id="username" name="username" value="{{ usuario.username }}" class="form-control" required>
+
+                                <label for="first_name">Nombre:</label>
+                                <input type="text" id="first_name" name="first_name" value="{{ usuario.first_name }}" class="form-control" required>
+
+                                <label for="last_name">Apellido:</label>
+                                <input type="text" id="last_name" name="last_name" value="{{ usuario.last_name }}" class="form-control" required>
+
+                                <label for="rol">Rol:</label>
+                                <input type="text" id="rol" name="rol" value="{{ usuario.rol }}" class="form-control">
+
+                                <label for="CI">CI:</label>
+                                <input type="text" id="CI" name="CI" value="{{ usuario.CI }}" class="form-control">
+
+                                <label for="password">Contraseña (opcional):</label>
+                                <input type="password" id="password" name="password" class="form-control">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                <button type="submit" name="editar_usuario" class="btn btn-primary">Guardar cambios</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+    <!-- Modal para crear usuario -->
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'usuarios:administrar_usuarios' %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="createModalLabel">Crear Usuario</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="username">Nombre de usuario:</label>
+                        <input type="text" id="username" name="username" class="form-control" required>
+
+                        <label for="first_name">Nombre:</label>
+                        <input type="text" id="first_name" name="first_name" class="form-control" required>
+
+                        <label for="last_name">Apellido:</label>
+                        <input type="text" id="last_name" name="last_name" class="form-control" required>
+
+                        <label for="rol">Rol:</label>
+                        <input type="text" id="rol" name="rol" class="form-control">
+
+                        <label for="CI">CI:</label>
+                        <input type="text" id="CI" name="CI" class="form-control">
+
+                        <label for="password">Contraseña:</label>
+                        <input type="password" id="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" name="crear_usuario" class="btn btn-primary">Crear</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Incluye jQuery y Bootstrap JS para que los modales funcionen correctamente -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+{% endblock %}

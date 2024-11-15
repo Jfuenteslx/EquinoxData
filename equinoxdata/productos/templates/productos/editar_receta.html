@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <!-- Título de la página -->
+        <h2 class="text-center mb-4">Editar Receta: {{ form.instance }}</h2>
+
+        <!-- Formulario para editar receta -->
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <form method="post" class="card p-4">
+                    {% csrf_token %}
+                    
+                    <!-- Renderizado de los campos del formulario con clases de Bootstrap -->
+                    {{ form.non_field_errors }}
+                    {% for field in form %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- Botón para actualizar la receta -->
+                    <button type="submit" class="btn btn-success btn-block">Actualizar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Enlace para volver a la lista de recetas -->
+        <div class="text-center mt-3">
+            <a href="{% url 'productos:listar_recetas' %}" class="btn btn-secondary">Volver a la lista de recetas</a>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título principal -->
+    <h1 class="text-center mb-4">Resumen de Ventas del Día</h1>
+
+    <!-- Botón para guardar ventas -->
+    <div class="text-center mb-4">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" name="guardar_ventas" class="btn btn-primary btn-lg">Guardar Ventas</button>
+        </form>
+    </div>
+
+    <!-- Mostrar resumen de ventas -->
+    <h2 class="text-center mb-4">Resumen de ventas del día {{ fecha_filtro }}</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Producto</th>
+                    <th>Total Vendido</th>
+                    <th>Fecha de Venta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if resumen_ventas %}
+                    {% for producto, datos in resumen_ventas.items %}
+                    <tr>
+                        <td>{{ producto }}</td>
+                        <td>{{ datos.total_vendido }}</td>
+                        <td>{{ datos.fecha_venta }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center">No se encontraron ventas para la fecha seleccionada.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Formulario de selección de fecha -->
+    <h3 class="text-center mb-4">Filtrar por Fecha</h3>
+    <div class="d-flex justify-content-center">
+        <form method="get" class="w-50">
+            {% csrf_token %}
+            {{ filtro_fecha_form.as_p }}
+            <div class="text-center">
+                <button type="submit" class="btn btn-secondary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

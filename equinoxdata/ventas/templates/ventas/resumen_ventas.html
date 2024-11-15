@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Resumen de Ventas del Día</h1>
+
+  <h2>Ventas Consolidadas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Cantidad Vendida</th>
+        <th>Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for venta in ventas %}
+        <tr>
+          <td>{{ venta.producto.nombre_presentacion }}</td>
+          <td>{{ venta.cantidad_total }}</td>
+          <td>{{ venta.fecha }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" action="{% url 'ventas:consolidar_ventas' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Consolidar Ventas</button>
+  </form>
+
+{% endblock %}

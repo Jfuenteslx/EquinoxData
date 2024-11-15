@@ -1,0 +1,25 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-5">
+    <!-- Título de la página -->
+    <h2 class="text-center mb-4 text-danger">Eliminar Producto: {{ producto.nombre }}</h2>
+    
+    <!-- Tarjeta de confirmación de eliminación -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <p class="card-text">¿Estás seguro de que deseas eliminar este producto?</p>
+                    
+                    <!-- Formulario de confirmación de eliminación -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                        <a href="{% url 'productos:listar_productos' %}" class="btn btn-secondary ml-2">Volver a la Lista</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    {% endblock %}
+

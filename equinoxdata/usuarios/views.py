@@ -1,12 +1,14 @@
-
 # usuarios/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from .forms import LoginForm, UsuarioCreationForm, UsuarioChangeForm
-from .models import Usuario, Personal
-from django.db.models import Max
+from django.urls import reverse
+from .forms import LoginForm, UsuarioForm 
+from .models import Usuario
+
+
+
 
 # Vista de login
 
@@ -33,80 +35,35 @@ def login_view(request):
 def inicio_view(request):
     return render(request, 'usuarios/dashboard.html')
 
+
+
+
+
 # Vista para administrar usuarios
-# @login_required
-# @user_passes_test(lambda u: u.is_staff)
-# def administrar_usuarios(request):
-#     usuarios = Usuario.objects.all()
-
-#     if request.method == 'POST':
-#         if 'crear_usuario' in request.POST:
-#             form = UsuarioCreationForm(request.POST)
-#             if form.is_valid():
-#                 form.save()
-#                 messages.success(request, 'Usuario creado exitosamente.')
-#                 return redirect('administrar_usuarios')
-
-#         elif 'editar_usuario' in request.POST:
-#             usuario = get_object_or_404(Usuario, id=request.POST.get("usuario_id"))
-#             form = UsuarioChangeForm(request.POST, instance=usuario)
-#             if form.is_valid():
-#                 form.save()
-#                 messages.success(request, 'Usuario editado exitosamente.')
-#                 return redirect('administrar_usuarios')
-
-#         elif 'eliminar_usuario' in request.POST:
-#             usuario = get_object_or_404(Usuario, id=request.POST.get("usuario_id"))
-#             usuario.delete()
-#             messages.success(request, 'Usuario eliminado exitosamente.')
-#             return redirect('administrar_usuarios')
-
-#     context = {
-#         'usuarios': usuarios,
-#         'crear_form': UsuarioCreationForm(),
-#         'editar_form': UsuarioChangeForm(),
-#     }
-#     return render(request, 'usuarios/administrar_usuarios.html', context)
-
-
-from django.db.models import Max  # Para obtener la última marca de cada usuario
 
 @login_required
-@user_passes_test(lambda u: u.is_staff)
 def administrar_usuarios(request):
-    # Recuperar los usuarios y unimos con detalles del personal y última sesión
-    usuarios_data = Usuario.objects.select_related('personal').annotate(
-        ultima_sesion=Max('personal__sesion__marca')
-    ).values(
-        'id', 'correo', 'personal__nombre', 'personal__apellido', 
-        'personal__CI', 'personal__rol', 'ultima_sesion'
-    )
-
     if request.method == 'POST':
+        # Aquí deberías verificar si se está creando un nuevo usuario
         if 'crear_usuario' in request.POST:
-            form = UsuarioCreationForm(request.POST)
+            # Crear un nuevo usuario
+            form = UsuarioForm(request.POST)
             if form.is_valid():
-                form.save()
-                messages.success(request, 'Usuario creado exitosamente.')
-                return redirect('administrar_usuarios')
-
+                form.save()  # Guarda el nuevo usuario en la base de datos
+                return redirect('usuarios:administrar_usuarios')
+        # Aquí puedes manejar la edición de un usuario
         elif 'editar_usuario' in request.POST:
-            usuario = get_object_or_404(Usuario, id=request.POST.get("usuario_id"))
-            form = UsuarioChangeForm(request.POST, instance=usuario)
-            if form.is_valid():
-                form.save()
-                messages.success(request, 'Usuario editado exitosamente.')
-                return redirect('administrar_usuarios')
+            usuario_id = request.POST.get('usuario_id')
+            usuario = Usuario.objects.get(id=usuario_id)
+            usuario.username = request.POST['username']
+            usuario.first_name = request.POST['first_name']
+            usuario.last_name = request.POST['last_name']
+            usuario.rol = request.POST['rol']
+            usuario.CI = request.POST['CI']
+            if request.POST.get('password'):
+                usuario.set_password(request.POST['password'])
+            usuario.save()
+            return redirect('usuarios:administrar_usuarios')
 
-        elif 'eliminar_usuario' in request.POST:
-            usuario = get_object_or_404(Usuario, id=request.POST.get("usuario_id"))
-            usuario.delete()
-            messages.success(request, 'Usuario eliminado exitosamente.')
-            return redirect('administrar_usuarios')
-
-    context = {
-        'usuarios_data': usuarios_data,
-        'crear_form': UsuarioCreationForm(),
-        'editar_form': UsuarioChangeForm(),
-    }
-    return render(request, 'usuarios/administrar_usuarios.html', context)
+    usuarios = Usuario.objects.all()  # O cualquier filtro que necesites
+    return render(request, 'usuarios/administrar_usuarios.html', {'usuarios': usuarios})

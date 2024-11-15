@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título principal -->
+    <h2 class="text-center mb-4">Lista de Sesiones de Trabajo</h2>
+
+    <!-- Sesión activa -->
+    {% if sesion_activa %}
+    <div class="alert alert-info text-center">
+        <p>Sesión activa para <strong>{{ request.user.username }}</strong>.</p>
+        {% if sesion_activa.id %}
+        <a href="{% url 'ventas:cerrar_sesion' sesion_activa.id %}" class="btn btn-warning">Cerrar sesión de trabajo</a>
+        {% else %}
+        <p class="text-danger">La sesión activa no tiene un ID válido.</p>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="text-center mb-4">
+        <a href="{% url 'ventas:iniciar_sesion' %}" class="btn btn-primary">Iniciar Sesión de Trabajo</a>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de sesiones -->
+    <table class="table table-striped table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th>
+                    <a href="?sort=usuario_encargado" class="text-light">Usuario Encargado</a>
+                    {% if request.GET.sort == 'usuario_encargado' %}
+                    <i class="fas fa-sort-alpha-down"></i>
+                    {% elif request.GET.sort == '-usuario_encargado' %}
+                    <i class="fas fa-sort-alpha-up"></i>
+                    {% endif %}
+                </th>
+                <th>
+                    <a href="?sort=fecha_inicio" class="text-light">Fecha de Inicio</a>
+                    {% if request.GET.sort == 'fecha_inicio' %}
+                    <i class="fas fa-sort-numeric-down"></i>
+                    {% elif request.GET.sort == '-fecha_inicio' %}
+                    <i class="fas fa-sort-numeric-up"></i>
+                    {% endif %}
+                </th>
+                <th>
+                    <a href="?sort=fecha_fin" class="text-light">Fecha de Fin</a>
+                    {% if request.GET.sort == 'fecha_fin' %}
+                    <i class="fas fa-sort-numeric-down"></i>
+                    {% elif request.GET.sort == '-fecha_fin' %}
+                    <i class="fas fa-sort-numeric-up"></i>
+                    {% endif %}
+                </th>
+                <th>
+                    <a href="?sort=estado" class="text-light">Estado</a>
+                    {% if request.GET.sort == 'estado' %}
+                    <i class="fas fa-sort-alpha-down"></i>
+                    {% elif request.GET.sort == '-estado' %}
+                    <i class="fas fa-sort-alpha-up"></i>
+                    {% endif %}
+                </th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sesion in sesiones %}
+            <tr>
+                <td>{{ sesion.usuario_encargado.username }}</td>
+                <td>{{ sesion.fecha_inicio }}</td>
+                <td>{{ sesion.fecha_fin|default:"Pendiente" }}</td>
+                <td>
+                    <span class="badge 
+                        {% if sesion.estado == 'abierta' %}badge-success
+                        {% else %}badge-secondary{% endif %}">
+                        {{ sesion.estado|title }}
+                    </span>
+                </td>
+                <td>
+                    {% if sesion.estado == 'abierta' %}
+                    <a href="{% url 'ventas:cerrar_sesion' sesion.id %}" class="btn btn-sm btn-warning">Cerrar Sesión</a>
+                    {% endif %}
+                    <a href="{% url 'ventas:detalle_sesion' sesion.id %}" class="btn btn-sm btn-info">Ver Detalle</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título de la página -->
+    <h2 class="text-center mb-4">Listado de Presentaciones de Producto</h2>
+
+    <!-- Botón para crear nueva presentación -->
+    <div class="row mb-3">
+        <!-- Columna para el primer botón (izquierda) -->
+        <div class="col-6 text-left">
+            <a href="{% url 'productos:productos_view' %}" class="btn btn-primary">Volver a Productos</a>
+        </div>
+    
+        <!-- Columna para el segundo botón (derecha) -->
+        <div class="col-6 text-right">
+    <a href="{% url 'productos:crear_presentacion' %}" class="btn btn-success">Crear Nueva Presentación</a>
+
+        </div>
+    </div>
+
+
+    <!-- Tabla de presentaciones de productos -->
+    <table class="table table-bordered table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>Producto</th>
+                <th>Nombre Presentación</th>
+                <th>Tipo Presentación</th>
+                <th>Consumo por Presentación (Medidas)</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for presentacion in presentaciones %}
+                <tr>
+                    <td>{{ presentacion.producto }}</td>
+                    <td>{{ presentacion.nombre_presentacion }}</td>
+                    <td>{{ presentacion.get_tipo_presentacion_display }}</td>
+                    <td>{{ presentacion.consumo_por_presentacion_medidas }}</td>
+                    <td>{{ presentacion.precio }}</td>
+                    <td>
+                        <a href="{% url 'productos:editar_presentacion' presentacion.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                        <a href="{% url 'productos:eliminar_presentacion' presentacion.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

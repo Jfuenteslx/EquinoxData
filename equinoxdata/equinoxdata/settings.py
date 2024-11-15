@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'eventos',
     'inventarios',
     'analizador',
+    'productos',
 ]
 
 
@@ -119,7 +120,7 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -132,7 +133,16 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'usuarios.Usuario'
+# settings.py
+AUTH_USER_MODEL = 'usuarios.Usuario'  # Cambia 'usuarios' por el nombre de tu app si es necesario
+
+
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',  # Asegúrate de que este backend esté habilitado
+    # Aquí puedes tener otros backends si los usas
+)
+
 
 
 # settings.py

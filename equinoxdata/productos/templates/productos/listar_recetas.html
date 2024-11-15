@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <!-- Título de la página -->
+        <h2 class="text-center mb-4">Lista de Recetas</h2>
+
+        <!-- Enlace para crear una nueva receta -->
+        <div class="row mb-3">
+            <!-- Columna para el primer botón (izquierda) -->
+            <div class="col-6 text-left">
+                <a href="{% url 'productos:productos_view' %}" class="btn btn-primary btn-sm">Volver a Productos</a>
+            </div>
+        
+            <!-- Columna para el segundo botón (derecha) -->
+            <div class="col-6 text-right">
+                <a href="{% url 'productos:crear_receta' %}" class="btn btn-success btn-sm">Crear Receta</a>
+            </div>
+        </div>
+
+        <!-- Tabla de recetas -->
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Presentación</th>
+                    <th>Ingrediente</th>
+                    <th>Cantidad en Medidas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for receta in recetas %}
+                    <tr>
+                        <td>{{ receta.presentacion }}</td>
+                        <td>{{ receta.ingrediente }}</td>
+                        <td>{{ receta.cantidad_medidas }}</td>
+                        <td>
+                            <a href="{% url 'productos:editar_receta' receta.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                            <a href="{% url 'productos:eliminar_receta' receta.pk %}" class="btn btn-danger btn-sm">Eliminar</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

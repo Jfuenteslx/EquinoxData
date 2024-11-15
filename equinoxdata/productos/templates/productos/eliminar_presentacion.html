@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <!-- Título de la página -->
+        <h2 class="text-center mb-4 text-danger">Eliminar Presentación de Producto</h2>
+
+        <!-- Mensaje de confirmación -->
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card border-danger">
+                    <div class="card-body text-center">
+                        <p>¿Estás seguro de que deseas eliminar la presentación "<strong>{{ presentacion.nombre_presentacion }}</strong>"?</p>
+                        
+                        <!-- Formulario de confirmación de eliminación -->
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                        </form>
+                        
+                        <!-- Botón de cancelar -->
+                        <a href="{% url 'productos:listar_presentaciones' %}" class="btn btn-secondary ml-2">Cancelar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

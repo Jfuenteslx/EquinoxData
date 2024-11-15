@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Consolidar Pedido del Día</h1>
+    <p>Este formulario agrupa las compras realizadas el día de hoy en un solo pedido. Haz clic en "Consolidar Pedido" para registrar el pedido del día.</p>
+
+    <h3>Compras realizadas hoy</h3>
+    <table class="table table-bordered table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for compra in compras_hoy %}
+            <tr>
+                <td>{{ compra.producto.nombre }}</td>
+                <td>{{ compra.cantidad }}</td>
+                <td>{{ compra.precio }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="text-center">No se han realizado compras hoy.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Botón para consolidar el pedido -->
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Consolidar Pedido del Día</button>
+    </form>
+</div>
+{% endblock %}

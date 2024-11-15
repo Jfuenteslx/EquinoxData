@@ -34,4 +34,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('usuarios:login')),  # Redirige la raíz al login
     path('usuarios/', include('usuarios.urls')),  # Incluye las URLs de la app 'usuarios'
+    path('inventarios/', include('inventarios.urls')),
+    path('productos/', include('productos.urls')),
+    path('compras/', include('compras.urls')),
+    path('ventas/', include('ventas.urls')),
+
+
+
 ]

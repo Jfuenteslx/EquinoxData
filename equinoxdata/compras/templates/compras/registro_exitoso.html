@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título de la página -->
+    <h2 class="text-center mb-4">Pedido Consolidado Exitosamente</h2>
+    
+    <!-- Mensaje de confirmación -->
+    <p class="text-center">Tu pedido ha sido consolidado y registrado correctamente. Los detalles del pedido son los siguientes:</p>
+    
+    <!-- Lista de productos en el pedido -->
+    <ul class="list-group mb-4">
+        {% for item in request.session.pedido_data %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>{{ item.producto }} - {{ item.cantidad }} unidades</span>
+                <span class="badge badge-primary badge-pill">${{ item.precio }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Botón de navegación -->
+    <div class="text-center">
+        <a href="{% url 'compras:crear_compra' %}" class="btn btn-primary btn-lg">Volver a Registro de compras</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <!-- Título de la página -->
+        <h2 class="text-center mb-4 text-danger">¿Seguro que quieres eliminar esta receta?</h2>
+
+        <!-- Detalles de la receta -->
+        <div class="card p-4">
+            <p><strong>Presentación:</strong> {{ receta.presentacion }}</p>
+            <p><strong>Ingrediente:</strong> {{ receta.ingrediente }}</p>
+            <p><strong>Cantidad en Medidas:</strong> {{ receta.cantidad_medidas }}</p>
+        </div>
+
+        <!-- Formulario para confirmar eliminación -->
+        <div class="text-center mt-4">
+            <form method="POST" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-lg">Eliminar</button>
+            </form>
+            
+            <!-- Botón de cancelar -->
+            <a href="{% url 'productos:listar_recetas' %}" class="btn btn-secondary btn-lg ml-2">Cancelar</a>
+        </div>
+    </div>
+{% endblock %}
