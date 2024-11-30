@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casos Históricos Generados</title>
+</head>
+<body>
+    <h1>Casos Históricos Generados</h1>
+    <ul>
+        {% for evento in eventos %}
+            <li>Evento: {{ evento.nombre_evento }} ({{ evento.fecha }}) - Caso Histórico Generado</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

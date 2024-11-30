@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Consolidar Inventario</h1>
+
+<p>Previsualización de los datos del inventario:</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Saldo en Bodega</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for producto, datos in inventario_data.items %}
+        <tr>
+            <td>{{ producto }}</td>
+            <td>{{ datos.saldo_bodega }}</td>
+
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Guardar Consolidación</button>
+</form>
+
+<p>Nota: Los datos se guardarán en el sistema experto con la fecha actual para su revision y analisis.</p>
+{% endblock %}

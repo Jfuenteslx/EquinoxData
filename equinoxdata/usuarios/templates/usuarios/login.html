@@ -1,103 +1,106 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
+<head>
     {% load static %}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Equinoxdata</title>
-    <link rel="icon" type="image/x-icon" href="{%static './img/favicon.ico'%}" />
-    <link
-      rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
-    />
-    <!-- Agrega otros enlaces a estilos que necesites -->
-    <link
-      rel="stylesheet"
-      href="{%static '/plugins/fontawesome-free/css/all.min.css' %}"
-    />
-    <link rel="stylesheet" href="{%static '/dist/css/adminlte.min.css' %}" />
-  </head>
+    <title>Equinoxdata - Iniciar Sesión</title>
+    <link rel="icon" type="image/x-icon" href="{% static './img/favicon.ico' %}" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="{% static '/plugins/fontawesome-free/css/all.min.css' %}" />
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+        }
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-logo a {
+            color: #fff;
+            font-size: 1.8rem;
+            text-decoration: none;
+        }
+        .login-logo img {
+            max-width: 80px;
+            margin-bottom: 15px;
+        }
+        .card {
+            background-color: #111;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        .form-control {
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #444;
+        }
+        .form-control:focus {
+            background-color: #222;
+            color: #fff;
+            border-color: #555;
+            box-shadow: none;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+        .text-light:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
 
+<body class="login-page">
+    <div class="login-box">
+        <div class="login-logo text-center">
+            <img src="{% static 'img/main.png' %}" alt="Logo">
+            <a href="#"><b>EQUINOX</b>data</a>
+        </div>
 
-  <body>
+        <div class="card">
+            <div class="card-body login-card-body">
+                <p class="login-box-msg">Inicia sesión para continuar</p>
 
-    {% comment %} <form method="POST">
-      {% csrf_token %} {{ form.as_p }}
-      <button type="submit">Iniciar Sesión</button>
-    </form> {% endcomment %}
-  </body>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="username" class="sr-only">Usuario</label>
+                        <input type="text" id="username" name="username" class="form-control" placeholder="Usuario" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password" class="sr-only">Contraseña</label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
+                    </div>
+                    <div class="form-group d-flex align-items-center">
+                        <input type="checkbox" id="remember" class="mr-2">
+                        <label for="remember" class="mb-0">Recuérdame</label>
+                    </div>
 
-{% comment %}codigo  html {% endcomment %}
-
-<body class="hold-transition login-page bg-black">
-  <div class="login-box">
-    <div class="login-logo">
-      <img src="{%static 'img/main.png'%}" alt="">
-      <a href="../../index2.html"><b>EQUINOX</b>data</a>
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
+                        </div>
+                        <div class="col-6 text-right">
+                            <a href="#" class="text-light">¿Olvidaste tu contraseña?</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-    <!-- /.login-logo -->
-    <div class="card">
-      <div class="card-body login-card-body bg-dark">
-  
 
-          <form method="POST">
-          {% comment %} <div class="input-group mb-3">
-            <input type="email" class="form-control" placeholder="Usuario">
-            <div class="input-group-append">
-              <div class="input-group-text">
-                <span class="fas fa-envelope"></span>
-              </div>
-            </div>
-          </div> {% endcomment %}
-          {% comment %} <div class="input-group mb-3">
-            <input type="password" class="form-control" placeholder="Password">
-            <div class="input-group-append">
-              <div class="input-group-text">
-                <span class="fas fa-lock"></span>
-              </div>
-            </div>
-          </div> {% endcomment %}
-          {% csrf_token %} {{ form.as_p }}
-
-          <div class="row">
-            <div class="col-6">
-              <div class="icheck-primary">
-                <input type="checkbox" id="remember">
-                <label for="remember">
-                  Recuerdame
-                </label>
-              </div>
-            </div>
-            <!-- /.col -->
-            <div class="col-6">
-              <!-- <button type="submit" class="btn btn-primary btn-block">Iniciar sesión</button> -->
-
-              <button class="btn btn-primary btn-block" type="submit">Iniciar Sesión</button>
-            </div>
-            <!-- /.col -->
-          </div>
-        </form>
-  
-       
-        <!-- /.social-auth-links -->
-  
-  
-      </div>
-      <!-- /.login-card-body -->
-    </div>
-  </div>
-  <!-- /.login-box -->
-  
-  <!-- jQuery -->
-  <script src="../../plugins/jquery/jquery.min.js"></script>
-  <!-- Bootstrap 4 -->
-  <script src="../../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <!-- AdminLTE App -->
-  <script src="../../dist/js/adminlte.min.js"></script>
-  
-
-
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
 </html>
-{% if form.non_field_errors %}
-<div class="error">{{ form.non_field_errors }}</div>
-{% endif %}

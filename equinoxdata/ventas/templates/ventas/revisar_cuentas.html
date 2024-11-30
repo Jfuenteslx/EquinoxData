@@ -21,15 +21,30 @@
                         <tr>
                             <td>{{ cuenta.fecha }}</td>
                             <td>
-                                <!-- Muestra los detalles de la cuenta como un bloque preformateado -->
-                                <pre>{{ cuenta.cuenta|json_script:"cuenta" }}</pre>
+                                <!-- Muestra los detalles de la cuenta como una lista -->
+                                {% if cuenta.cuenta %}
+                                    <ul>
+                                        {% for producto, detalles in cuenta.cuenta.items %}
+                                            <li>
+                                                <strong>{{ producto }}</strong>: 
+                                                {{ detalles.cantidad }} unidades, Total: ${{ detalles.total }}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span class="text-muted">Sin ventas consolidadas</span>
+                                {% endif %}
                             </td>
                             <td>
                                 <!-- Botón para consolidar -->
-                                <form method="POST" action="{% url 'ventas:consolidar_cuenta' cuenta.fecha %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-sm">Consolidar</button>
-                                </form>
+                                {% if not cuenta.cuenta %}
+                                    <form method="POST" action="{% url 'ventas:consolidar_cuenta' cuenta.fecha %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-sm">Consolidar</button>
+                                    </form>
+                                {% else %}
+                                    <button class="btn btn-secondary btn-sm" disabled>Consolidado</button>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}

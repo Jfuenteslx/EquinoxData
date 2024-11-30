@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Casos Históricos</h1>
+
+    <!-- Filtros -->
+    <form method="get" class="mb-4">
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label for="tipo_evento">Tipo de Evento:</label>
+                <input type="text" name="tipo_evento" id="tipo_evento" class="form-control" placeholder="Ejemplo: Concierto">
+            </div>
+            <div class="form-group col-md-3">
+                <label for="genero_musical">Género Musical:</label>
+                <input type="text" name="genero_musical" id="genero_musical" class="form-control" placeholder="Ejemplo: Rock">
+            </div>
+            <div class="form-group col-md-3">
+                <label for="genero_musical">Género Musical:</label>
+                <input type="text" name="genero_musical" id="genero_musical" class="form-control" placeholder="Ejemplo: Rock">
+            </div>
+            <div class="form-group col-md-3">
+                <label for="genero_musical">Género Musical:</label>
+                <input type="text" name="genero_musical" id="genero_musical" class="form-control" placeholder="Ejemplo: Rock">
+            </div>
+
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Filtrar</button>
+    </form>
+
+    <!-- Tabla de Casos -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Evento</th>
+                    <th>Tipo de Evento</th>
+                    <th>Show Presentado</th>
+                    <th>Género Musical</th>
+                    <th>Promociones</th>
+                    <th>Coeficiente</th>
+                    <th>Performance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for caso in casos|dictsortreversed:"evento.fecha" %}
+                    <tr>
+                        <td>{{ caso.evento.nombre }}</td>
+                        <td>{{ caso.tipo_evento }}</td>
+                        <td>{{ caso.show_presentado }}</td>
+                        <td>{{ caso.genero_musical }}</td>
+                        <td>{{ caso.promociones }}</td>
+                        <td>{{ caso.coeficiente|floatformat:2 }}%</td>
+                        <td>{{ caso.performance|floatformat:2 }}%</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No se encontraron casos históricos.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

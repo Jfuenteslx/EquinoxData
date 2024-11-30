@@ -1,6 +1,17 @@
 
 
 
+
+
+from django.utils.dateparse import parse_datetime
+
+from datetime import datetime, date
+
+
+
+
+
+
 # vistas.py
 
 from django.db.models import F
@@ -13,6 +24,9 @@ from . import models
 from django.db.models import Sum
 from .forms import ComandaForm, FiltroFechaForm
 from .models import SesionDeTrabajo, Comanda, PresentacionProducto, Venta, Cuenta
+from django.contrib import messages
+
+from datetime import date
 
 
 
@@ -45,27 +59,25 @@ def sesiones_activas(request):
     return render(request, 'ventas/sesiones_activas.html', {'sesiones': sesiones})
 
 
+
 def cerrar_sesion(request, sesion_id):
     # Obtener la sesión de trabajo
     sesion = get_object_or_404(SesionDeTrabajo, id=sesion_id)
     
     # Verificar si la sesión está abierta
     if sesion.estado != 'abierta':
-        return redirect('sesiones_activas')  # Redirigir si la sesión ya está cerrada
+        return redirect('ventas:sesiones_activas')  # Redirigir si la sesión ya está cerrada
     
-    # Calcular el total de ventas
-    total_ventas = Venta.objects.filter(sesion_de_trabajo=sesion).aggregate(Sum('total'))['total__sum'] or 0
+    # Calcular el total de ventas sumando los totales de las comandas
+    total_ventas = Comanda.objects.filter(sesion_de_trabajo=sesion).aggregate(Sum('total'))['total__sum'] or 0
     
-        # Actualizar la sesión con el total de ventas y la fecha de fin
+    # Actualizar la sesión con el total de ventas y la fecha de fin
     sesion.total_ventas = total_ventas
     sesion.estado = 'cerrada'
     sesion.fecha_fin = timezone.now()  # Registrar la fecha y hora de cierre
     sesion.save()  # Guardar los cambios
 
     return redirect('ventas:sesiones_activas')
-
-
-
 
 @login_required
 def detalle_sesion(request, sesion_id):
@@ -92,6 +104,7 @@ def error_view(request):
 # ---------------------------------------------------------------------------------------------------
 
 
+
 @login_required
 def registrar_venta(request):
     # Buscar la sesión activa
@@ -113,6 +126,16 @@ def registrar_venta(request):
             comanda.total = producto.precio * cantidad  # Calculamos el total
 
             comanda.save()
+
+            # Depuración: Mostrar el total de ventas antes de la actualización
+            print(f"Total ventas antes de actualizar: {sesion_activa.total_ventas}")
+
+            # Actualizar el total de ventas de la sesión después de guardar la comanda
+            sesion_activa.calcular_total_ventas()
+
+            # Depuración: Mostrar el total de ventas después de la actualización
+            print(f"Total ventas después de actualizar: {sesion_activa.total_ventas}")
+
             return redirect('ventas:registrar_venta')  # Redirigir a la misma página para registrar más ventas
     else:
         form = ComandaForm()
@@ -133,9 +156,7 @@ def registrar_venta(request):
         'ventas_resumen': ventas_resumen,
         'productos': productos,
     })
-    
-    # vista para el ordenamiento de la tabla
-    
+
 
 def listar_sesiones(request):
     sort = request.GET.get('sort', 'fecha_inicio')  # Default sort by fecha_inicio
@@ -165,85 +186,138 @@ class FiltroFechaForm(forms.Form):
         label="Fecha"
     )
 
+
+
+
+
+
+
+from decimal import Decimal
+from datetime import date
+from django.shortcuts import render, redirect
+from django.utils.dateparse import parse_date
+from .models import Comanda, Cuenta, Venta, SesionDeTrabajo
+from inventarios.models import Inventario
+
 def ventas_totales_del_dia(request):
-    # Obtener la fecha actual (día de trabajo) o la fecha proporcionada por el usuario
-    if request.method == 'GET' and 'fecha' in request.GET:
-        fecha_filtro = request.GET['fecha']
-        fecha_filtro = timezone.datetime.strptime(fecha_filtro, '%Y-%m-%d').date()
+    # Obtener la fecha del filtro desde los parámetros de la URL
+    fecha_str = request.GET.get('fecha', '')
+
+    if not fecha_str:
+        fecha_filtro = date.today()
     else:
-        fecha_filtro = timezone.now().date()
+        fecha_filtro = parse_date(fecha_str)
+        if not fecha_filtro:
+            fecha_filtro = date.today()
 
-    # Filtrar las sesiones cerradas para la fecha seleccionada
-    sesiones_cerradas = SesionDeTrabajo.objects.filter(
-        estado='cerrada', 
-        fecha_inicio__date=fecha_filtro  # Asegurarse de que las sesiones son de la fecha seleccionada
-    )
+    # Filtrar las ventas de la fecha seleccionada
+    ventas_del_dia = Comanda.objects.filter(sesion_de_trabajo__fecha_inicio__date=fecha_filtro)
 
-    # Obtener todas las comandas relacionadas con las sesiones cerradas
-    comandas = Comanda.objects.filter(
-        sesion_de_trabajo__in=sesiones_cerradas
-    )
-    
-    # Obtener el total vendido de cada producto en las comandas, incluyendo la fecha de la venta
-    productos_totales = comandas.values('producto__nombre_presentacion', 'sesion_de_trabajo__fecha_inicio').annotate(
-        total_vendido=Sum('cantidad')
-    ).order_by('producto__nombre_presentacion')
-
-    # Recuperar todos los productos disponibles para mostrar los que no tienen ventas
-    productos_disponibles = PresentacionProducto.objects.all()
-    
-    # Crear un diccionario con el nombre del producto, la fecha y la cantidad total (inicialmente 0)
+    # Resumen de ventas: Agrupar por producto y calcular la cantidad total vendida
     resumen_ventas = {}
-    for producto in productos_disponibles:
-        resumen_ventas[producto.nombre_presentacion] = {
-            'total_vendido': 0,
-            'fecha_venta': None  # Inicializa la fecha como None
-        }
+    for venta in ventas_del_dia:
+        producto_nombre = venta.producto.nombre
+        if producto_nombre not in resumen_ventas:
+            # Inicializa el resumen de ventas para este producto
+            resumen_ventas[producto_nombre] = {
+                'total_vendido': 0,
+                'producto_id': venta.producto.id,
+                'total': Decimal('0.00'),  # Usa Decimal en lugar de float
+                'producto_objeto': venta.producto,
+            }
 
-    # Llenar el diccionario con las ventas y la fecha correspondiente
-    for item in productos_totales:
-        producto_nombre = item['producto__nombre_presentacion']
-        fecha_venta = item['sesion_de_trabajo__fecha_inicio']
-        total_vendido = item['total_vendido']
+        resumen_ventas[producto_nombre]['total_vendido'] += venta.cantidad
+        resumen_ventas[producto_nombre]['total'] += Decimal(venta.cantidad * venta.producto.precio)
 
-        # Si el producto ya tiene ventas, acumulamos
-        if producto_nombre in resumen_ventas:
-            resumen_ventas[producto_nombre]['total_vendido'] += total_vendido
-            # Si la fecha de la venta es más reciente, actualizamos
-            if resumen_ventas[producto_nombre]['fecha_venta'] is None or fecha_venta > resumen_ventas[producto_nombre]['fecha_venta']:
-                resumen_ventas[producto_nombre]['fecha_venta'] = fecha_venta
+    # Si el formulario se envía (Consolidar Ventas)
+    if request.method == 'POST' and 'consolidar_ventas' in request.POST:
+        # Consolidar las ventas para la fecha seleccionada
+        cuenta, created = Cuenta.objects.get_or_create(fecha=fecha_filtro)
 
-    # Solo guardar los registros si se recibe un POST con la acción de guardar
-    if request.method == 'POST' and 'guardar_ventas' in request.POST:
-        # Guardar los registros de ventas totales en la base de datos (utilizando el modelo Venta)
+        # Obtener o crear una sesión de trabajo para esa fecha
+        sesion = SesionDeTrabajo.objects.filter(fecha_inicio__date=fecha_filtro).first()
+        if not sesion:
+            sesion = SesionDeTrabajo.objects.create(
+                fecha_inicio=fecha_filtro,
+                estado="Abierta",
+                usuario_encargado=request.user,
+            )
+
+        # Registrar cada venta en la tabla Venta
         for producto_nombre, datos in resumen_ventas.items():
-            if datos['total_vendido'] > 0:  # Solo guardamos si se vendió algo
-                producto = PresentacionProducto.objects.get(nombre_presentacion=producto_nombre)
-                # Calcular el total de la venta (precio * cantidad vendida)
-                total_venta = producto.precio * datos['total_vendido']
-                # Registrar la venta total en la base de datos
-                Venta.objects.create(
-                    presentacion_producto=producto,
+            if datos['total_vendido'] > 0:
+                # Verificar si ya existe una venta registrada para este producto en la fecha y sesión
+                existing_venta = Venta.objects.filter(
+                    presentacion_producto=datos['producto_objeto'],
                     fecha=fecha_filtro,
-                    cantidad_total=datos['total_vendido'],
-                    total=total_venta  # Agregar el total calculado
-                )
+                    sesion_de_trabajo=sesion
+                ).first()
 
-    # Crear el formulario de fecha para que el usuario lo pueda seleccionar
-    filtro_fecha_form = FiltroFechaForm(initial={'fecha': fecha_filtro})
+                if existing_venta:
+                    # Si existe, actualizar la venta existente
+                    existing_venta.cantidad_total += datos['total_vendido']
+                    existing_venta.total += datos['total']
+                    existing_venta.save()
+                else:
+                    # Si no existe, crear una nueva venta
+                    Venta.objects.create(
+                        presentacion_producto=datos['producto_objeto'],
+                        fecha=fecha_filtro,
+                        cantidad_total=datos['total_vendido'],
+                        total=datos['total'],
+                        sesion_de_trabajo=sesion,
+                    )
 
+                # Actualizar el inventario después de la venta
+                producto_base = datos['producto_objeto'].receta.first().insumo  # Obtiene el insumo relacionado (ProductoBase)
+                inventario_producto = Inventario.objects.filter(producto=producto_base).first()
+
+                if inventario_producto:
+                    # Restamos del campo medidas_restantes
+                    inventario_producto.medidas_restantes -= datos['total_vendido']
+
+                    # Si medidas_restantes llega a 0 o es negativo, descontamos de saldo_bodega
+                    if inventario_producto.medidas_restantes <= 0:
+                        inventario_producto.saldo_bodega -= 1
+                        # Si medidas_restantes es negativo, calculamos el sobrante
+                        sobrante = abs(inventario_producto.medidas_restantes)
+                        # Reiniciamos medidas_restantes considerando el sobrante, si hay stock disponible
+                        if inventario_producto.saldo_bodega > 0:
+                            inventario_producto.medidas_restantes += sobrante
+                        else:
+                            inventario_producto.medidas_restantes = 0  # Sin stock restante
+
+                    # Guardar los cambios
+                    inventario_producto.save()
+                else:
+                    print(f"El inventario para el producto {producto_base} no existe.")
+
+        # Guardar la cuenta consolidada
+        cuenta.resumen_ventas = {
+            producto_nombre: {
+                'total_vendido': datos['total_vendido'],
+                'total': str(datos['total']),  # Convertir Decimal a string si es necesario
+            }
+            for producto_nombre, datos in resumen_ventas.items()
+        }
+        cuenta.save()
+
+        # Redirigir al listado de cuentas consolidadas
+        return redirect('ventas:revisar_cuentas')
+
+    # Pasar datos a la plantilla para renderizar
     return render(request, 'ventas/ventas_totales_del_dia.html', {
+        'fecha_filtro': fecha_filtro,
         'resumen_ventas': resumen_ventas,
-        'filtro_fecha_form': filtro_fecha_form,
-        'fecha_filtro': fecha_filtro
     })
-    
+
+
     # ------------------------------------------------------------------
     # Vistas de cuentas (consolidacion a json)
     # ------------------------------------------------------------------
     
     
-    from django.shortcuts import render, redirect
+
 
 def revisar_cuentas(request):
     # Obtener todas las cuentas ya consolidadas
@@ -253,15 +327,20 @@ def revisar_cuentas(request):
         'cuentas': cuentas,
     })
 
+
 def consolidar_cuenta(request, fecha):
     # Consolidar la cuenta para una fecha específica
     if request.method == 'POST':
         # Verificar si ya existe una cuenta para esa fecha
         cuenta, created = Cuenta.objects.get_or_create(fecha=fecha)
-        
+
         if created:
             cuenta.consolidar_ventas()  # Consolidamos las ventas de la fecha
             cuenta.save()  # Guardamos la cuenta consolidada
-            return redirect('ventas:revisar_cuentas')  # Redirigimos al listado de cuentas
+        else:
+            messages.error(request, f"Ya existe una cuenta consolidada para la fecha {fecha}.")
+        
+        return redirect('ventas:revisar_cuentas')
 
+    # En caso de GET o métodos no permitidos, redirigir al listado
     return redirect('ventas:revisar_cuentas')

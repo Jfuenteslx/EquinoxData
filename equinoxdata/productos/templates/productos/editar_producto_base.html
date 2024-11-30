@@ -1,0 +1,40 @@
+<!-- Modal de edición -->
+<div class="modal fade" id="editarProductoBaseModal" tabindex="-1" role="dialog" aria-labelledby="editarProductoBaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarProductoBaseModalLabel">Editar Producto Base</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="editarProductoBaseForm">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#editarProductoBaseForm').on('submit', function (e) {
+            e.preventDefault();
+            var form = $(this);
+            $.ajax({
+                type: form.attr('method'),
+                url: form.attr('action'),
+                data: form.serialize(),
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#editarProductoBaseModal').modal('hide');
+                        $('#productoBaseTable').html(response.html);  // Actualiza la tabla de productos
+                    }
+                }
+            });
+        });
+    });
+</script>

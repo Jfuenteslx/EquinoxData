@@ -6,34 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
 
-
     <title>Equinoxdata</title>
-    <link rel="icon" type="image/x-icon" href="{%static 'img/favicon.ico'%}">
-    <!-- Tell the browser to be responsive to screen width -->
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="{%static '/plugins/fontawesome-free/css/all.min.css'%}">
-    <!-- Ionicons -->
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'plugins/fontawesome-free/css/all.min.css' %}">
     <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-    <!-- Tempusdominus Bbootstrap 4 -->
-    <link rel="stylesheet" href="{%static 'plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css'%}">
-    <!-- iCheck -->
-    <link rel="stylesheet" href="{%static 'plugins/icheck-bootstrap/icheck-bootstrap.min.css'%}">
-    <!-- JQVMap -->
-    <link rel="stylesheet" href="{%static 'plugins/jqvmap/jqvmap.min.css'%}">
-    <!-- Theme style -->
-
-    <link rel="stylesheet" href="{%static '/dist/css/adminlte.min.css' %}" />
-    <!-- overlayScrollbars -->
-    <link rel="stylesheet" href="{%static 'plugins/overlayScrollbars/css/OverlayScrollbars.min.css'%}">
-    <!-- Daterange picker -->
-    <link rel="stylesheet" href="{%static 'plugins/daterangepicker/daterangepicker.css'%}">
-    <!-- summernote -->
-    <link rel="stylesheet" href="{%static 'plugins/summernote/summernote-bs4.css'%}">
-    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="{% static 'plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/jqvmap/jqvmap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/overlayScrollbars/css/OverlayScrollbars.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/daterangepicker/daterangepicker.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/summernote/summernote-bs4.css' %}">
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
-    <!-- Scripts personalizados -->
-    <script src="{%static 'dist/js/fecha.js'%}"></script>
+
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 </head>
 <body class="hold-transition sidebar-mini layout-fixed" onload="startTime()">
     <div class="wrapper">
@@ -67,7 +54,7 @@
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
-            <a href="index3.html" class="brand-link">
+            <a href="{% url 'usuarios:inicio' %}" class="brand-link">
                 <img src="{%static 'img/navba_logo3.png'%}" alt="AdminLTE Logo" class="brand-image img-circle elevation-1"
                     style="opacity: .8">
                 <span class="brand-text font-weight-bold"><strong>EQUINOCCIO</strong></span>
@@ -80,12 +67,14 @@
                     <div class="image">
                         <img src="{%static 'img/logo_equi.jpg'%}" class="img-circle elevation-2" alt="User Image">
                     </div>
+                    {% if user.is_authenticated %}
                     <div class="info">
-                        <a href="#" class="d-block font-weight-bold">Super Admin</a>
+                        <a href="#" class="d-block font-weight-bold">{{ user.username }}!</a>
                         <a href="{% url 'usuarios:logout' %}">Cerrar sesión</a>
-          
+                    
                         <!-- aca va el cargo -->
                     </div>
+                    {% endif %}
                 </div>
                 
 <nav class="mt-2">
@@ -108,9 +97,9 @@
     </a>
     <ul class="nav nav-treeview">
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'ventas:registrar_venta' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
-                <p>Nueva Venta</p>
+                <p>Comandas</p>
             </a>
         </li>
         <li class="nav-item">
@@ -126,7 +115,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'ventas:ventas_totales_del_dia' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Consolidar</p>
             </a>
@@ -156,9 +145,15 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'inventarios:saldo_list' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Registrar Saldos</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'inventarios:inventario_list' %}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Consultar stock actual</p>
             </a>
         </li>
         <li class="nav-item">
@@ -171,13 +166,13 @@
 </li>
 <!--Productos-->
 <li class="nav-item has-treeview">
-    <a href="{% url 'productos:productos_view' %}" class="nav-link">
+    <a href="{% url 'productos:productosview' %}" class="nav-link">
         <i class="nav-icon fas fa-wine-bottle"></i>
         <p>Productos <i class="fas fa-angle-left right"></i></p>
     </a>
     <ul class="nav nav-treeview">
         <li class="nav-item">
-            <a href="{% url 'productos:listar_productos' %}" class="nav-link">
+            <a href="{% url 'productos:listar_base' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Insumos</p>
             </a>
@@ -208,7 +203,8 @@
     </a>
     <ul class="nav nav-treeview">
         <li class="nav-item">
-            <a href="#" class="nav-link">
+   
+                <a href="{% url 'eventos:listar_eventos' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Administrar eventos</p>
             </a>
@@ -229,23 +225,22 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Analizar Eventos</p>
-            </a>
-        </li>
+   
+            <a href="{% url 'analizador:entrada' %}" class="nav-link">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Analizar eventos</p>
+        </a>
+    </li>
+
+    </ul>
+    <li class="nav-item">
+        <a href="{% url 'usuarios:administrar_usuarios' %}" class="nav-link">
+            <i class="nav-icon fas fa-user"></i><p>Personal</p>
+        </a>
+    </li>
     </ul>
 </li>
 
-        <!-- menu personal -->
-        <li class="nav-item">
-            <a href="{% url 'usuarios:administrar_usuarios' %}" class="nav-link">
-                <i class="nav-icon fas fa-user"></i>
-                <p>Personal</p>
-            </a>
-        </li>
-    </ul>
-</nav>
 <!-- /.sidebar-menu -->
 </aside>
 
@@ -254,11 +249,11 @@
 
 
     <!-- Contenido dinámico de la página -->
-    <main>
+
         {% block content %}
         <!-- Contenido específico de cada plantilla se colocará aquí -->
         {% endblock %}
-    </main>
+
 
     <!-- Pie de página común -->
 </div>
@@ -285,9 +280,6 @@
 <!-- jQuery UI 1.11.4 -->
 <script src="{%static 'plugins/jquery-ui/jquery-ui.min.js'%}"></script>
 <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
-<script>
-$.widget.bridge('uibutton', $.ui.button)
-</script>
 <!-- Bootstrap 4 -->
 <script src="{%static 'plugins/bootstrap/js/bootstrap.bundle.min.js'%}"></script>
 <!-- ChartJS -->
@@ -311,6 +303,11 @@ $.widget.bridge('uibutton', $.ui.button)
 <!-- AdminLTE App -->
 <script src="{%static 'dist/js/adminlte.js'%}"></script>
 
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+
+
 
 <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
 <script src="{%static 'dist/js/pages/dashboard.js'%}"></script>
@@ -318,6 +315,9 @@ $.widget.bridge('uibutton', $.ui.button)
 <script src="{%static 'dist/js/demo.js'%}"></script>
 <!-- Luego carga tu archivo JavaScript donde defines la función -->
 <script src="{% static 'dist/js/fecha.js' %}"></script>
+<script>
+$.widget.bridge('uibutton', $.ui.button)
+</script>
 </body>
 
 </html>

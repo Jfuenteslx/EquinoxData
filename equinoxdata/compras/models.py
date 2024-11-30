@@ -1,8 +1,9 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from usuarios.models import Usuario
-from productos.models import ProductoBase  # Relación con ProductoBase
 from django.utils import timezone
+from usuarios.models import Usuario
+from productos.models import ProductoBase  # Asumiendo que el ProductoBase está en la app productos
+
 
 class Compra(models.Model):
     producto = models.ForeignKey(ProductoBase, on_delete=models.CASCADE)  # Relación con ProductoBase
@@ -10,7 +11,6 @@ class Compra(models.Model):
     cantidad = models.IntegerField()  # Cantidad de botellas compradas
     precio = models.DecimalField(max_digits=10, decimal_places=2)  # Precio de compra por botella
     fecha = models.DateTimeField(default=timezone.now)  # Usando timezone.now()
-
 
     def __str__(self):
         return f"Compra de {self.cantidad} botellas de {self.producto.nombre} por {self.precio} cada una"
@@ -28,22 +28,6 @@ class Compra(models.Model):
         if self.precio <= 0:
             raise ValidationError("El precio debe ser mayor que cero.")
 
-    def save(self, *args, **kwargs):
-        """
-        Sobrescribimos el método `save` para realizar las siguientes acciones:
-        1. Validar los datos antes de guardar.
-        2. Actualizar el inventario de `ProductoBase` después de guardar la compra.
-        """
-        # Validamos los datos antes de guardar
-        self.clean()
-
-        # Guardamos la compra
-        super().save(*args, **kwargs)
-
-        # Actualizar el inventario de ProductoBase
-        if self.cantidad > 0:
-            self.producto.stock_botellas += self.cantidad  # Sumamos las botellas compradas al inventario
-            self.producto.save()  # Guardamos el ProductoBase con el nuevo stock
 
 class Pedido(models.Model):
     fecha = models.DateField()
@@ -52,3 +36,10 @@ class Pedido(models.Model):
 
     def __str__(self):
         return f"Pedido realizado el {self.fecha} relacionado con la compra {self.compra.id}"
+
+
+
+def save(self, *args, **kwargs):
+    super().save(*args, **kwargs)
+    inventario = Inventario.objects.get(producto=self.producto)
+    inventario.calcular_stock_final()

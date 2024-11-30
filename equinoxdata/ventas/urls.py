@@ -17,7 +17,9 @@ urlpatterns = [
     
     path('registrar/', views.registrar_venta, name='registrar_venta'),
     
-    path('ventas_totales/', views.ventas_totales_del_dia, name='ventas_totales_del_dia'),
+    # path('ventas_totales/', views.ventas_totales_del_dia, name='ventas_totales_del_dia'),
+    path('ventas_totales_del_dia/', views.ventas_totales_del_dia, name='ventas_totales_del_dia'),
+    # ... otras URLs
      # URL para revisar las cuentas consolidadas
     path('revisar_cuentas/', views.revisar_cuentas, name='revisar_cuentas'),
 

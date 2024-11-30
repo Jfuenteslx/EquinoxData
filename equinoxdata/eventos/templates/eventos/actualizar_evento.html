@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título de la página -->
+    <h2 class="text-center mb-4">Actualizar Evento</h2>
+
+    <!-- Formulario -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <form method="POST" enctype="multipart/form-data" class="card p-4 shadow-sm">
+                {% csrf_token %}
+
+                <!-- Mostrar errores no asociados a un campo específico -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <!-- Renderizado de los campos del formulario con estilos de Bootstrap -->
+                {% for field in form %}
+                    <div class="form-group">
+                        {{ field.label|safe }} <!-- Ya incluye font-weight-bold desde el formulario -->
+                        {{ field }} <!-- Estilizado por los widgets en el formulario -->
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="text-danger">
+                                {{ field.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <!-- Botón de envío -->
+                <button type="submit" class="btn btn-primary btn-block">Actualizar Evento</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

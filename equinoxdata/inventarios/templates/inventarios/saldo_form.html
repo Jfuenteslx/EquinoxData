@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título dinámico -->
+    <h2 class="text-center text-primary mb-4">
+        {% if form.instance.id %}Editar{% else %}Registrar{% endif %} Saldo
+    </h2>
+
+    <!-- Formulario -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <form method="POST" class="card shadow-sm p-4">
+                {% csrf_token %}
+                {{ form.as_p }}
+                
+                <!-- Botón de acción -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-save"></i> 
+                        {% if form.instance.id %}Actualizar{% else %}Guardar{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Enlace para volver -->
+    <div class="text-center mt-4">
+        <a href="{% url 'inventarios:saldo_list' %}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-arrow-left"></i> Volver al listado de saldos
+        </a>
+    </div>
+</div>
+{% endblock %}

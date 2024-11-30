@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título -->
+    <h2 class="text-center mb-4">Listado de Saldos</h2>
+    <div class="row justify-content-center text-center m-4">
+        <div class="col-md-5 mx-2">
+            <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-success btn-lg w-100">
+                Ver Inventario
+            </a>
+        </div>
+        <div class="col-md-5 mx-2">
+            <a href="{% url 'inventarios:saldo_create' %}" class="btn btn-primary btn-lg w-100">
+                <i class="fas fa-plus-circle"></i> Registrar un nuevo saldo
+            </a>
+        </div>
+    </div>
+    
+    
+    
+
+    <!-- Tabla de saldos -->
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Medida</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for saldo in saldos %}
+                <tr>
+                    <td>{{ saldo.producto.nombre }}</td>
+                    <td>{{ saldo.cantidad }}</td>
+                    <td>{{ saldo.medida }}</td>
+                    <td>{{ saldo.fecha }}</td>
+                    <td>
+                        <a href="{% url 'inventarios:saldo_edit' saldo.id %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'inventarios:saldo_delete' saldo.id %}" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash-alt"></i> Eliminar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">No hay saldos registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Botón para registrar nuevo saldo -->
+</div>
+{% endblock %}

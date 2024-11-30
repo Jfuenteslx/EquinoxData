@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <h1 class="text-center">Historial de Inventario: {{ inventario.producto.nombre }}</h1>
+  <div class="col-md-5 mx-2">
+    <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-success">
+        Volver a inventario
+    </a>
+</div>
+
+  <!-- Compras -->
+  <div class="mt-4">
+    <h2>Compras</h2>
+    {% if compras %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+          <thead class="thead-dark">
+            <tr>
+              <th>Fecha</th>
+              <th>Cantidad</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for compra in compras %}
+              <tr>
+                <td>{{ compra.fecha }}</td>
+                <td>{{ compra.cantidad }}</td>
+                <td>{{ compra.precio }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">No hay compras registradas para este producto.</p>
+    {% endif %}
+  </div>
+
+  <!-- Ventas -->
+  <div class="mt-4">
+    <h2>Ventas</h2>
+    {% if ventas %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+          <thead class="thead-dark">
+            <tr>
+              <th>Fecha</th>
+              <th>Cantidad</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for venta in ventas %}
+              <tr>
+                <td>{{ venta.fecha }}</td>
+                <td>{{ venta.cantidad_total }}</td>
+                <td>{{ venta.total }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">No hay ventas registradas para este producto.</p>
+    {% endif %}
+  </div>
+
+  <!-- Stock Final -->
+  <div class="mt-4">
+    <h2>Stock Final</h2>
+    <p><strong>Existencias en bodega: </strong>{{ inventario.saldo_bodega }}</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título -->
+    <h1 class="text-center text-danger mb-4">¿Estás seguro de que deseas eliminar esta presentación?</h1>
+
+    <!-- Información del objeto -->
+    <div class="alert alert-warning text-center">
+        <p><strong>{{ object.nombre }} - {{ object.presentacion }}</strong></p>
+    </div>
+
+    <!-- Formulario de eliminación -->
+    <form method="post" class="text-center">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-lg mr-2">
+            <i class="fas fa-trash-alt"></i> Eliminar
+        </button>
+        <a href="{% url 'productos:listar_presentaciones' %}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-times"></i> Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}

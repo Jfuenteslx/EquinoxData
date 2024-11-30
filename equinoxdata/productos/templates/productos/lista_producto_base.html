@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary">Lista de Productos Base</h2>
+        <button class="btn btn-success" data-toggle="modal" data-target="#createModal">
+            <i class="fas fa-plus"></i> Crear Producto
+        </button>
+        <a href="{% url 'productos:productosview' %}" class="btn btn-success btn- align-items-center justify-content-center">
+            <i class="fas fa-box-open mr-2"></i> Volver a Productos
+        </a>
+    </div>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+        <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tabla de productos base -->
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered" id="productoBaseTable">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Presentación</th>
+                    <th>Es insumo?</th>
+                    <th>Cantidad (ml)</th>
+                    <th>Medidas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.presentacion }}</td>
+                    <td>{{ producto.categoria|yesno:"Sí,No" }}</td>
+                    <td>{{ producto.cantidad }} ml</td>
+                    <td>{{ producto.medidas|default:"-" }}</td>
+                    <td class="text-center">
+                        <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#editModal-{{ producto.id }}" onclick="setInitialStateEditModal({{ producto.id }})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal-{{ producto.id }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+
+                <!-- Modal para editar producto -->
+                <div class="modal fade" id="editModal-{{ producto.id }}" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="post" action="{% url 'productos:editar_base' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                                <div class="modal-header bg-warning text-white">
+                                    <h5 class="modal-title" id="editModalLabel">Editar Producto</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="nombre">Nombre:</label>
+                                        <input type="text" id="nombre" name="nombre" value="{{ producto.nombre }}" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="presentacion-{{ producto.id }}">Presentación:</label>
+                                        <select id="presentacion-{{ producto.id }}" name="presentacion" class="form-control">
+                                            <option value="Botella" {% if producto.presentacion == "Botella" %}selected{% endif %}>Botella</option>
+                                            <option value="Lata" {% if producto.presentacion == "Lata" %}selected{% endif %}>Lata</option>
+                                            <option value="Botellin" {% if producto.presentacion == "Botellin" %}selected{% endif %}>Botellín</option>
+                                            <option value="Cajetilla" {% if producto.presentacion == "Cajetilla" %}selected{% endif %}>Cajetilla</option>
+                                            <option value="Bebida sin alcohol" {% if producto.presentacion == "Bebida sin alcohol" %}selected{% endif %}>Bebida sin alcohol</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input type="checkbox" id="categoria-{{ producto.id }}" name="categoria" class="form-check-input" {% if producto.categoria == 'Insumo' %}checked{% endif %}>
+                                        <label for="categoria-{{ producto.id }}" class="form-check-label">Insumo</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="cantidad">Cantidad (ml):</label>
+                                        <input type="number" id="cantidad" name="cantidad" value="{{ producto.cantidad }}" class="form-control" required>
+                                    </div>
+                                    <div class="form-group" id="medidas-container-{{ producto.id }}" {% if producto.categoria != "Insumo" %}style="display: none;"{% endif %}>
+                                        <label for="medidas">Medidas:</label>
+                                        <input type="text" id="medidas" name="medidas" value="{{ producto.medidas }}" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                    <button type="submit" name="editar_producto" class="btn btn-primary">Guardar Cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal para eliminar producto -->
+                <div class="modal fade" id="deleteModal-{{ producto.id }}" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title" id="deleteModalLabel">Eliminar Producto</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p>¿Estás seguro de que deseas eliminar este producto?</p>
+                            </div>
+                            <div class="modal-footer">
+                                <form method="post" action="{% url 'productos:eliminar_base' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal para crear producto base -->
+<div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'productos:crear_base' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="createModalLabel">Crear Producto</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Similar form fields to the edit modal -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

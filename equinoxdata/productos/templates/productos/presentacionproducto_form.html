@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">{% if object %}Editar{% else %}Crear{% endif %} Presentación de Producto</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <form method="post" class="card shadow-sm p-4">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                {% for field in form %}
+                <div class="form-group {% if field.widget.input_type == 'checkbox' %}form-check{% endif %}">
+                    {% if field.widget.input_type == 'checkbox' %}
+                    <!-- Estilo especial para checkboxes -->
+                    {{ field }}
+                    {{ field.label_tag }}
+                    {% else %}
+                    <!-- Estilo general para otros campos -->
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% endif %}
+                    
+                    {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div class="text-danger">
+                        {{ field.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-success btn-lg mr-2">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                    <a href="{% url 'productos:listar_presentaciones' %}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

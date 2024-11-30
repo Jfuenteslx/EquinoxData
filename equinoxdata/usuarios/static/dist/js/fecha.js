@@ -40,3 +40,49 @@ function checkTime(i) {
   }
   return i;
 }
+
+// js para manejar modals productos
+
+
+  // Modal de creación
+  $('#crearProductoBaseModal').on('show.bs.modal', function () {
+    // Aquí podrías reiniciar el formulario si fuera necesario
+    $('#crearProductoBaseForm')[0].reset();
+  });
+
+  // Modal de edición
+  $('#editarProductoBaseModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget); // Botón que activó el modal
+    var productoId = button.data('id'); // Extraer información del atributo data-id
+
+    // Llenar el formulario de edición con los datos correspondientes
+    $.ajax({
+      url: "{% url 'productos:producto_base_editar' 0 %}".replace('0', productoId),
+      method: "GET",
+      success: function (response) {
+        // Asumimos que el formulario se encuentra dentro del modal y que es reemplazado con los datos del producto
+        $('#editarProductoBaseModal .modal-body').html(response.html);
+      }
+    });
+  });
+
+  // Modal de eliminación
+  $('#confirmDeleteModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget); // Botón que activó el modal
+    var productoId = button.data('id'); // Extraer el id del producto a eliminar
+
+    $('#confirmDeleteBtn').on('click', function () {
+      // Realizar la eliminación con AJAX o redirigir a la URL de eliminación
+      $.ajax({
+        url: "{% url 'productos:producto_base_eliminar' 0 %}".replace('0', productoId),
+        method: "DELETE",
+        success: function (response) {
+          // Cerrar el modal
+          $('#confirmDeleteModal').modal('hide');
+          // Actualizar la tabla o hacer algo más
+          location.reload();
+        }
+      });
+    });
+  });
+

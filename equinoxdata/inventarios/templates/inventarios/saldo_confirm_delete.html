@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Título -->
+    <h2 class="text-center text-danger mb-4">¿Estás seguro de que deseas eliminar este saldo?</h2>
+
+    <!-- Detalles del saldo -->
+    <div class="alert alert-warning">
+        <p><strong>Producto:</strong> {{ saldo.producto.nombre }}</p>
+        <p><strong>Cantidad:</strong> {{ saldo.cantidad }} {{ saldo.medida }}</p>
+        <p><strong>Fecha:</strong> {{ saldo.fecha }}</p>
+    </div>
+
+    <!-- Formulario de eliminación -->
+    <form method="POST" class="text-center">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-lg mr-2">
+            <i class="fas fa-trash-alt"></i> Eliminar
+        </button>
+        <a href="{% url 'inventarios:saldo_list' %}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-times"></i> Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}

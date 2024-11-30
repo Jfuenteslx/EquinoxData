@@ -1,3 +1,5 @@
+from django.utils.timezone import now
+from datetime import date
 # usuarios/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login
@@ -6,6 +8,7 @@ from django.contrib import messages
 from django.urls import reverse
 from .forms import LoginForm, UsuarioForm 
 from .models import Usuario
+from eventos.models import Evento
 
 
 
@@ -29,29 +32,42 @@ def login_view(request):
 
     return render(request, 'usuarios/login.html', {'form': form})
 
-# Vista del dashboard o inicio
 @login_required
-# @user_passes_test(lambda u: u.is_staff)  # Asegura que solo los staff puedan acceder
 def inicio_view(request):
-    return render(request, 'usuarios/dashboard.html')
+    hoy = date.today()
 
+    # Obtener los 3 próximos eventos
+    eventos_proximos = Evento.objects.filter(fecha__gte=hoy).order_by('fecha')[:3]
 
+    # Obtener los 3 eventos pasados
+    eventos_pasados = Evento.objects.filter(fecha__lt=hoy).order_by('-fecha')[:6]
+
+    # Pasar los eventos a la plantilla
+    return render(request, 'usuarios/dashboard.html', {
+        'eventos_proximos': eventos_proximos,
+        'eventos_pasados': eventos_pasados
+    })
 
 
 
 # Vista para administrar usuarios
 
+
+
 @login_required
 def administrar_usuarios(request):
     if request.method == 'POST':
-        # Aquí deberías verificar si se está creando un nuevo usuario
+        # Crear un nuevo usuario
         if 'crear_usuario' in request.POST:
-            # Crear un nuevo usuario
             form = UsuarioForm(request.POST)
             if form.is_valid():
-                form.save()  # Guarda el nuevo usuario en la base de datos
+                usuario = form.save(commit=False)  # No guardes todavía
+                if request.POST.get('password'):
+                    usuario.set_password(request.POST['password'])  # Encripta la contraseña
+                usuario.save()  # Ahora guarda el usuario con la contraseña encriptada
                 return redirect('usuarios:administrar_usuarios')
-        # Aquí puedes manejar la edición de un usuario
+        
+        # Editar un usuario existente
         elif 'editar_usuario' in request.POST:
             usuario_id = request.POST.get('usuario_id')
             usuario = Usuario.objects.get(id=usuario_id)
@@ -61,9 +77,9 @@ def administrar_usuarios(request):
             usuario.rol = request.POST['rol']
             usuario.CI = request.POST['CI']
             if request.POST.get('password'):
-                usuario.set_password(request.POST['password'])
+                usuario.set_password(request.POST['password'])  # Encripta la nueva contraseña
             usuario.save()
             return redirect('usuarios:administrar_usuarios')
 
-    usuarios = Usuario.objects.all()  # O cualquier filtro que necesites
+    usuarios = Usuario.objects.all()  # Lista de todos los usuarios
     return render(request, 'usuarios/administrar_usuarios.html', {'usuarios': usuarios})

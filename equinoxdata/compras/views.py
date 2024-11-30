@@ -37,12 +37,9 @@ def crear_compra(request):
                 fecha=timezone.now()  # Asegúrate de usar timezone.now() para la fecha
             )
 
-            # Actualizar el inventario del producto base
-            producto.stock_botellas += cantidad
-            producto.save()
 
             # Mensaje de éxito
-            messages.success(request, f"Compra registrada con éxito. {cantidad} botellas de {producto.nombre} adquiridas.")
+            messages.success(request, f"Compra registrada con éxito. {cantidad} unidades de {producto.nombre} adquiridas.")
             return redirect('compras:crear_compra')
 
         except ProductoBase.DoesNotExist:
@@ -59,6 +56,7 @@ def crear_compra(request):
             'compras_del_dia': compras_del_dia,
             'fecha_actual': fecha_actual
         })
+
 
 @login_required
 def eliminar_compra(request, compra_id):

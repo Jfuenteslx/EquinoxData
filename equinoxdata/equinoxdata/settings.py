@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'widget_tweaks',
     # Apps del proyecto
     'usuarios',
     'ventas',
@@ -128,6 +129,11 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Asegúrate de que esté apuntando a la carpeta correcta
+]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -153,3 +159,7 @@ LOGIN_REDIRECT_URL = '/usuarios/inicio/'  # O usa el nombre de URL si prefieres
 
 # settings.py
 LOGOUT_REDIRECT_URL = 'usuarios:login'
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

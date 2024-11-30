@@ -1,0 +1,45 @@
+<!-- inventarios/templates/inventarios/inicializar_inventarios.html -->
+
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <!-- Título -->
+  <h2 class="text-center text-primary mb-4">Inicializar Inventarios</h2>
+
+
+  <h1>Inicializar Inventarios</h1>
+  <p>
+    No existen inventarios inicializados. ¿Desea inicializarlos utilizando las
+    compras registradas?
+  </p>
+  <form method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">
+      Inicializar Inventarios
+    </button>
+  </form>
+
+  <!-- Descripción -->
+  <div class="alert alert-info text-center">
+    <p>
+      Actualmente no existen inventarios registrados en el sistema. ¿Deseas
+      importar las compras para inicializar los inventarios?
+    </p>
+  </div>
+
+  <!-- Formulario -->
+  <form method="post" class="text-center">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary btn-lg">
+      <i class="fas fa-download"></i> Sí, importar compras
+    </button>
+  </form>
+
+  <!-- Enlace para volver -->
+  <div class="text-center mt-4">
+    <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Volver al listado de inventarios
+    </a>
+  </div>
+</div>
+{% endblock %}

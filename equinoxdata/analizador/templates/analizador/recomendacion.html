@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recomendación</title>
+</head>
+<body>
+    <h1>Recomendación de cantidad de productos</h1>
+    <p>El coeficiente de reabastecimiento es de  {{ recomendacion }} %.</p>
+
+    <!-- Mostrar los parámetros ingresados -->
+    <h2>Resumen de los parámetros ingresados:</h2>
+    <p><strong>Evento:</strong> {{ resumen.evento }}</p>
+    <p><strong>Tipo de evento:</strong> {{ resumen.tipo_evento }}</p>
+    <p><strong>Show presentado:</strong> {{ resumen.show_presentado }}</p>
+    <p><strong>Género musical:</strong> {{ resumen.genero_musical }}</p>
+    <p><strong>Promociones:</strong> {{ resumen.promociones }}</p>
+
+    <!-- Mostrar el último registro de RegistroStock -->
+    <h2>Último registro de inventario:</h2>
+    {% if ultimo_registro == "No hay registros en la tabla." %}
+        <p>{{ ultimo_registro }}</p>
+    {% else %}
+        <!-- Asegúrate de que estos campos existan en tu modelo RegistroStock -->
+        <p><strong>Inventario JSON:</strong> {{ ultimo_registro.inventario_json }}</p>
+        <p><strong>Fecha:</strong> {{ ultimo_registro.fecha }}</p>
+        <!-- Agrega otros campos según lo que tenga tu modelo -->
+    {% endif %}
+
+    <!-- Botones de acción -->
+    <a href="{% url 'analizador:entrada' %}" class="btn btn-primary">Ir a Entrada</a>
+
+    <a href="{% url 'analizador:evaluar_casos_similares' %}" class="btn btn-primary">Evaluar Casos Similares</a>
+
+</html>

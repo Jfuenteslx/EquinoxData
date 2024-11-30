@@ -1,0 +1,41 @@
+<!-- Modal de creación -->
+<div class="modal fade" id="crearProductoBaseModal" tabindex="-1" role="dialog" aria-labelledby="crearProductoBaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="crearProductoBaseModalLabel">Crear Producto Base</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="crearProductoBaseForm">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para manejar el formulario con AJAX -->
+<script>
+    $(document).ready(function () {
+        $('#crearProductoBaseForm').on('submit', function (e) {
+            e.preventDefault();
+            var form = $(this);
+            $.ajax({
+                type: form.attr('method'),
+                url: form.attr('action'),
+                data: form.serialize(),
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#crearProductoBaseModal').modal('hide');
+                        $('#productoBaseTable').html(response.html);  // Actualiza la tabla de productos
+                    }
+                }
+            });
+        });
+    });
+</script>

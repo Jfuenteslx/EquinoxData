@@ -41,7 +41,7 @@
         <tbody>
             {% for comanda in ventas_resumen %}
             <tr>
-                <td>{{ comanda.producto.nombre_presentacion }}</td>
+                <td>{{ comanda.producto.nombre }}</td>
                 <td>{{ comanda.cantidad }}</td>
                 <td>${{ comanda.producto.precio }}</td>
                 <td>${{ comanda.total }}</td>

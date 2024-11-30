@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluación de Casos Similares</title>
+</head>
+<body>
+    <h1>Evaluación de Casos Similares</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Evaluar</button>
+    </form>
+
+    {% if casos_similares %}
+    <h2>Casos Similares Encontrados:</h2>
+    <ul>
+        {% for caso in casos_similares %}
+        <li>
+            <p><strong>Evento:</strong> {{ caso.evento }}</p>
+            <p><strong>Ventas:</strong> {{ caso.ventas }}</p>
+            <p><strong>Consumo:</strong> {{ caso.consumo }}</p>
+            <!-- Agrega más detalles de los casos si es necesario -->
+        </li>
+        {% endfor %}
+    </ul>
+    <h3>Recomendación de Compra:</h3>
+    <p>{{ recomendacion_compra }}</p>
+    {% else %}
+    <p>No se encontraron casos similares.</p>
+    {% endif %}
+</body>
+</html>

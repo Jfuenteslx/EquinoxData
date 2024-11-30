@@ -1,15 +1,12 @@
-
 from django import forms
-from productos.models import ProductoBase  # Importa el modelo ProductoBase
-from .models import Inventario, RegistroStock  # Asegúrate de importar RegistroStock
+from .models import Saldo
 
-class InventarioForm(forms.ModelForm):
+class SaldoForm(forms.ModelForm):
     class Meta:
-        model = Inventario
-        fields = ['producto', 'stock_actual']  # Asegúrate de que 'producto' esté bien configurado con ProductoBase
+        model = Saldo
+        fields = ['producto', 'cantidad', 'medida', 'fecha']  # Asegúrate de incluir 'fecha'
 
-class RegistrarStockForm(forms.ModelForm):
-    class Meta:
-        model = RegistroStock  # Ahora debería reconocer RegistroStock correctamente
-        fields = ['fecha', 'stock', 'inventario']
-        exclude = ['fecha']  # Si no quieres que 'fecha' sea editable, lo excluyes
+    def __init__(self, *args, **kwargs):
+        super(SaldoForm, self).__init__(*args, **kwargs)
+        # Hacer que el campo 'fecha' sea solo lectura (visible pero no editable)
+        self.fields['fecha'].widget = forms.DateInput(attrs={'readonly': 'readonly', 'class': 'form-control'})

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Inventario</h2>
+
+    <!-- Botones de navegación -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <a href="{% url 'inventarios:saldo_list' %}" class="btn btn-info btn-block">
+                Ver Saldos
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'inventarios:consolidar_inventario' %}" class="btn btn-success btn-block">
+                Consolidar Inventario
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{% url 'inventarios:inicializar_inventarios' %}" class="btn btn-secondary btn-block">
+                inicializar inventarios
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabla de inventarios -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Nro de movimiento</th>
+                    <th>Producto</th>
+                    <th>Saldo en bodega</th>
+                    <th>Marca de tiempo</th>
+                    <th>Estado</th>
+                    <th>Historial</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inventario in inventarios %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ inventario.producto.nombre }}</td>
+                    <td>{{ inventario.saldo_bodega }}</td>
+                    <td>{{ inventario.fecha_ingreso }}</td>
+                    <td>{{ inventario.actualizar_estado }}</td>
+                    <td>
+                        <a href="{% url 'inventarios:inventario_historial' inventario.id %}" class="btn btn-primary btn-sm">
+                            Ver historial
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No hay inventarios registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

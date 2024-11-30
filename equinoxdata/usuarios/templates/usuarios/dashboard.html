@@ -1,10 +1,5 @@
 <!DOCTYPE html>
-<!--
-This is a starter template page. Use this page to start your new project from
-scratch. This page gets rid of all links and provides the needed markup only.
--->
 <html lang="en">
-
 <head>
     {% load static %}
     <meta charset="utf-8">
@@ -27,7 +22,6 @@ scratch. This page gets rid of all links and provides the needed markup only.
     <!-- JQVMap -->
     <link rel="stylesheet" href="{%static 'plugins/jqvmap/jqvmap.min.css'%}">
     <!-- Theme style -->
-
     <link rel="stylesheet" href="{%static '/dist/css/adminlte.min.css' %}" />
     <!-- overlayScrollbars -->
     <link rel="stylesheet" href="{%static 'plugins/overlayScrollbars/css/OverlayScrollbars.min.css'%}">
@@ -40,7 +34,6 @@ scratch. This page gets rid of all links and provides the needed markup only.
     <!-- Scripts personalizados -->
     <script src="{%static 'dist/js/fecha.js'%}"></script>
 </head>
-
 <body class="hold-transition sidebar-mini layout-fixed" onload="startTime()">
     <div class="wrapper">
 
@@ -73,7 +66,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
-            <a href="index3.html" class="brand-link">
+            <a href="{% url 'usuarios:inicio' %}" class="brand-link">
                 <img src="{%static 'img/navba_logo3.png'%}" alt="AdminLTE Logo" class="brand-image img-circle elevation-1"
                     style="opacity: .8">
                 <span class="brand-text font-weight-bold"><strong>EQUINOCCIO</strong></span>
@@ -86,12 +79,14 @@ scratch. This page gets rid of all links and provides the needed markup only.
                     <div class="image">
                         <img src="{%static 'img/logo_equi.jpg'%}" class="img-circle elevation-2" alt="User Image">
                     </div>
+                    {% if user.is_authenticated %}
                     <div class="info">
-                        <a href="#" class="d-block font-weight-bold">Super Admin</a>
+                        <a href="#" class="d-block font-weight-bold">{{ user.username }}!</a>
                         <a href="{% url 'usuarios:logout' %}">Cerrar sesión</a>
-          
+                    
                         <!-- aca va el cargo -->
                     </div>
+                    {% endif %}
                 </div>
                 
 <nav class="mt-2">
@@ -105,6 +100,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
                                 </p>
                             </a>
                         </li>
+                        
         <!-- menu ventas -->
 <li class="nav-item has-treeview">
     <a href="#" class="nav-link">
@@ -113,9 +109,9 @@ scratch. This page gets rid of all links and provides the needed markup only.
     </a>
     <ul class="nav nav-treeview">
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'ventas:registrar_venta' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
-                <p>Nueva Venta</p>
+                <p>Comandas</p>
             </a>
         </li>
         <li class="nav-item">
@@ -131,7 +127,7 @@ scratch. This page gets rid of all links and provides the needed markup only.
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'ventas:ventas_totales_del_dia' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Consolidar</p>
             </a>
@@ -161,9 +157,15 @@ scratch. This page gets rid of all links and provides the needed markup only.
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'inventarios:saldo_list' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Registrar Saldos</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'inventarios:inventario_list' %}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i>
+                <p>Consultar stock actual</p>
             </a>
         </li>
         <li class="nav-item">
@@ -176,27 +178,25 @@ scratch. This page gets rid of all links and provides the needed markup only.
 </li>
 <!--Productos-->
 <li class="nav-item has-treeview">
-    <a href="{% url 'productos:productos_view' %}" class="nav-link">
-
+    <a href="{% url 'productos:productosview' %}" class="nav-link">
         <i class="nav-icon fas fa-wine-bottle"></i>
         <p>Productos <i class="fas fa-angle-left right"></i></p>
     </a>
     <ul class="nav nav-treeview">
         <li class="nav-item">
-            
-            <a href="{% url 'productos:listar_productos' %}" class="nav-link">
+            <a href="{% url 'productos:listar_base' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Insumos</p>
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'productos:listar_presentaciones' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Productos</p>
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'productos:listar_recetas' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Recetas</p>
             </a>
@@ -205,15 +205,18 @@ scratch. This page gets rid of all links and provides the needed markup only.
 </li>
 
 
+
+
 <!-- menu agenda -->
 <li class="nav-item has-treeview">
     <a href="#" class="nav-link">
         <i class="nav-icon fas fa-calendar-check"></i>
-        <p>Agenda <i class="right fas fa-angle-left"></i></p>
+        <p>Eventos <i class="right fas fa-angle-left"></i></p>
     </a>
     <ul class="nav nav-treeview">
         <li class="nav-item">
-            <a href="#" class="nav-link">
+   
+                <a href="{% url 'eventos:listar_eventos' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
                 <p>Administrar eventos</p>
             </a>
@@ -228,50 +231,42 @@ scratch. This page gets rid of all links and provides the needed markup only.
     </a>
     <ul class="nav nav-treeview">
         <li class="nav-item">
-            <a href="#" class="nav-link">
+            <a href="{% url 'analizador:consultar_casos' %}" class="nav-link">
                 <i class="far fa-circle nav-icon"></i>
-                <p>Consultar Casos</p>
+                <p>Consultar Casos Históricos</p>
             </a>
         </li>
         <li class="nav-item">
-            <a href="#" class="nav-link">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Analizar Eventos</p>
-            </a>
-        </li>
+   
+            <a href="{% url 'analizador:entrada' %}" class="nav-link">
+            <i class="far fa-circle nav-icon"></i>
+            <p>Analizar eventos</p>
+        </a>
+    </li>
+
+    </ul>
+    <li class="nav-item">
+        <a href="{% url 'usuarios:administrar_usuarios' %}" class="nav-link">
+            <i class="nav-icon fas fa-user"></i><p>Personal</p>
+        </a>
+    </li>
     </ul>
 </li>
 
         <!-- menu personal -->
-        <li class="nav-item">
-            <a href="{% url 'usuarios:administrar_usuarios' %}" class="nav-link">
-                <i class="nav-icon fas fa-user"></i>
-                <p>Personal</p>
-            </a>
-        </li>
-    </ul>
 </nav>
 <!-- /.sidebar-menu -->
+</aside>
 
-
-
-        </aside>
-
-        <!-- Content Wrapper. Contains page content -->
-        <div class="content-wrapper">
+<div class="content-wrapper">
             <!-- Content Header (Page header) -->
             <div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
                         <div class="col-sm-6">
-                            <h1 class="m-0 text-dark">Bienvenido</h1>
+                            <h1 class="m-0 text-dark">Bienvenid@ {{ user.username }}!</h1>
                         </div><!-- /.col -->
-                        <div class="col-sm-6">
-                            <ol class="breadcrumb float-sm-right">
-                                <li class="breadcrumb-item"><a href="#">Home</a></li>
-                                <li class="breadcrumb-item active">Dashboard v1</li>
-                            </ol>
-                        </div><!-- /.col -->
+ 
                     </div><!-- /.row -->
                 </div><!-- /.container-fluid -->
             </div>
@@ -292,41 +287,63 @@ scratch. This page gets rid of all links and provides the needed markup only.
                             <br> <br>Gracias! <br><br> Atte. Jose
                         </div>
                         <div class="row">
-
-                            <div class="col-sm-4">
-                                <div class="card" style="width: 100%;">
-                                    <img src="{%static 'img/resources/Cerrado.png'%}" class="card-img-top" alt="...">
-                                    <div class="card-body">
-                                        <h4 class="card-title">Jueves</h4>
-                                        <p class="card-text">No hay programación</p>
-                                        <a href="#" class="btn btn-primary">Historial del evento</a>
+                            <div class="container mt-5">
+                                <!-- Próximos Eventos -->
+                                <h3 class="text-center mb-4">Próximos Eventos</h3>
+                                {% if eventos_proximos %}
+                                    <div class="row d-flex flex-wrap justify-content-center">
+                                        {% for evento in eventos_proximos %}
+                                            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                                                <div class="card shadow-sm h-100 card-equal">
+                                                    {% if evento.flyer %}
+                                                        <img src="{{ evento.flyer.url }}" class="card-img-top" alt="Flyer de {{ evento.nombre }}">
+                                                    {% else %}
+                                                        <img src="{%static 'img/logo_equi.jpg'%}" class="card-img-top" alt="Coming soon">
+                                                    {% endif %}
+                                                    <div class="card-body d-flex flex-column">
+                                                        <h5 class="card-title font-weight-bold">{{ evento.nombre }}</h5>
+                                                        <p class="card-text text-muted mb-2">
+                                                            <i class="fas fa-calendar-alt"></i> {{ evento.fecha }}
+                                                        </p>
+                                                        <div class="mt-auto">
+                                                            <button class="btn btn-primary w-100">Realizar análisis</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-4">
-                                <div class="card" style="width: 100%;">
-                                    <img src="{%static 'img/resources/Viernes20231006.jpg'%}" class="card-img-top" alt="...">
-                                    <div class="card-body">
-                                        <h4 class="card-title">VIE 06 🔥 EL CIRCO presenta: LOS FABULOSOS DECADENTES 🔥</h4>
-                                        <p class="card-text">◄◄ COVER 30bs ►►Chicas Ingreso Libre hasta las 22:30hrs
-                                            🎈Cumpleañeros de Octubre Ingreso Libre + Drink de Cortesía🎈🎂</p>
-                                        <a href="#" class="btn btn-primary">Historial del evento</a>
+                                {% else %}
+                                    <p class="text-center text-muted">No hay próximos eventos.</p>
+                                {% endif %}
+                                
+                                <h3 class="text-center mt-5 mb-4">Últimos Eventos Pasados</h3>
+                                {% if eventos_pasados %}
+                                    <div class="row">
+                                        {% for evento in eventos_pasados %}
+                                            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                                                <div class="card shadow-sm">
+                                                    {% if evento.flyer %}
+                                                        <img src="{{ evento.flyer.url }}" class="card-img-top" alt="Flyer de {{ evento.nombre }}">
+                                                    {% else %}
+                                                        <img src="{% static 'images/default_evento.jpg' %}" class="card-img-top" alt="Flyer por defecto">
+                                                    {% endif %}
+                                                    <div class="card-body">
+                                                        <h5 class="card-title font-weight-bold">{{ evento.nombre }}</h5>
+                                                        <p class="card-text text-muted mb-2">
+                                                            <i class="fas fa-calendar-alt"></i> {{ evento.fecha }}
+                                                        </p>
+                                                        <button class="btn btn-primary">Revisar resultados</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                </div>
+                                {% else %}
+                                    <p class="text-center text-muted">No hay eventos pasados.</p>
+                                {% endif %}
                             </div>
-                            <div class="col-sm-4">
-                                <div class="card" style="width: 100%;">
-                                    <img src="{%static 'img/resources/sabado20231007.jpg'%}" class="card-img-top" alt="...">
-                                    <div class="card-body">
-                                        <h4 class="card-title">SÁB 07 ⚡ ANIVERSARIO 2 años "Z3RO": HITS DON'T DIE! ⚡</h4>
-                                        <p class="card-text">◄◄ COVER 30bs ►►2x1 hasta las 22:30
-                                            🎈Cumpleañeros de Octubre Ingreso Libre + Drink de Cortesía🎈🎂</p>
-                                        <a href="#" class="btn btn-primary">Historial del evento</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
+                        </div>                        
                     </div>
                     <div class="col-sm-3">
                         <div class="small-box bg-success">
