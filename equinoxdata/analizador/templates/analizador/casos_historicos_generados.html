@@ -1,16 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Casos Históricos Generados</title>
-</head>
-<body>
-    <h1>Casos Históricos Generados</h1>
-    <ul>
-        {% for evento in eventos %}
-            <li>Evento: {{ evento.nombre_evento }} ({{ evento.fecha }}) - Caso Histórico Generado</li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Casos Históricos Generados</h1>
+
+    {% if eventos %}
+        <div class="row">
+            {% for evento in eventos %}
+                <div class="col-12 col-md-6 col-lg-4 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary font-weight-bold">{{ evento.nombre_evento }}</h5>
+                            <p class="card-text">
+                                <i class="fas fa-calendar-alt"></i> Fecha: {{ evento.fecha }}
+                            </p>
+                            <p class="text-success font-italic">Caso Histórico Generado</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center text-muted">No hay casos históricos generados.</p>
+    {% endif %}
+</div>
+{% endblock %}

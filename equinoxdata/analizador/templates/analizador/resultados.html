@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Resultados</h1>
+
+    <!-- Recomendación -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">Recomendación de Productos</h2>
+            <p class="card-text">
+                El coeficiente de reabastecimiento es de 
+                <strong class="text-success">{{ recomendacion }}</strong>%.
+            </p>
+        </div>
+    </div>
+
+    <!-- Resumen de Parámetros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">Resumen de los Parámetros Ingresados</h2>
+            <p><strong>Aforo:</strong> {{ resumen.aforo }}</p>
+            <p><strong>Ventas:</strong> {{ resumen.ventas }}</p>
+            <p><strong>Consumo:</strong> {{ resumen.consumo }}</p>
+        </div>
+    </div>
+
+    <!-- Último Registro de Inventario -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">Último Registro de Inventario</h2>
+            {% if ultimo_registro == "No hay registros en la tabla." %}
+                <p class="text-muted">{{ ultimo_registro }}</p>
+            {% else %}
+                <p><strong>Fecha:</strong> {{ ultimo_registro.fecha }}</p>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for producto, cantidad in ultimo_registro.inventario_json.items %}
+                            <tr>
+                                <td>{{ producto }}</td>
+                                <td>{{ cantidad }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Búsqueda de Casos Similares -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">Búsqueda de Casos Similares</h2>
+            <form method="POST" action="{% url 'analizador:buscar_casos' %}">
+                {% csrf_token %}
+                {{ busqueda_form.as_p }}
+                <button type="submit" class="btn btn-primary mt-3">
+                    <i class="fas fa-search"></i> Buscar Casos Similares
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botón de Volver -->
+    <div class="text-center">
+        <a href="{% url 'analizador:entrada' %}" class="btn btn-secondary mt-4">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+{% endblock %}

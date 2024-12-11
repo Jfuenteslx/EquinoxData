@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Casos Similares Encontrados</h1>
+
+    <!-- Mostrar los parámetros ingresados -->
+    <h3 class="mb-3">Parámetros de búsqueda:</h3>
+    <ul class="list-group mb-4">
+        <li class="list-group-item"><strong>Tipo de Evento:</strong> {{ tipo_evento }}</li>
+        <li class="list-group-item"><strong>Show Presentado:</strong> {{ show_presentado }}</li>
+        <li class="list-group-item"><strong>Género Musical:</strong> {{ genero_musical }}</li>
+        <li class="list-group-item"><strong>Promociones:</strong> {{ promociones }}</li>
+    </ul>
+
+    {% if casos_similares %}
+    <!-- Tabla de resultados -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Nombre del Evento</th>
+                    <th>Fecha del Evento</th>
+                    <th>Tipo de Evento</th>
+                    <th>Show Presentado</th>
+                    <th>Género Musical</th>
+                    <th>Promociones</th>
+                    <th>Performance</th> <!-- Nueva columna de Performance -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for caso in casos_similares %}
+                <tr>
+                    <!-- Mostrar nombre y fecha del evento -->
+                    <td>{{ caso.evento.nombre }}</td>
+                    <td>{{ caso.evento.fecha }}</td>
+                    <td>{{ caso.tipo_evento }}</td>
+                    <td>{{ caso.show_presentado }}</td>
+                    <td>{{ caso.genero_musical }}</td>
+                    <td>{{ caso.promociones }}</td>
+                    <td>{{ caso.performance }}%</td> <!-- Mostrar Performance -->
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        No se encontraron casos similares con los parámetros ingresados.
+    </div>
+    {% endif %}
+
+    <!-- Botones de acción -->
+    <div class="text-center mt-4">
+        <a href="{% url 'analizador:entrada' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a la entrada de parámetros
+        </a>
+        <a href="{% url 'analizador:generar_recomendacion' %}" class="btn btn-primary ml-3">
+            <i class="fas fa-check-circle"></i> Generar Recomendación de Compra
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,35 +1,65 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Recomendación</title>
-</head>
-<body>
-    <h1>Recomendación de cantidad de productos</h1>
-    <p>El coeficiente de reabastecimiento es de  {{ recomendacion }} %.</p>
+{% extends 'base.html' %}
 
-    <!-- Mostrar los parámetros ingresados -->
-    <h2>Resumen de los parámetros ingresados:</h2>
-    <p><strong>Evento:</strong> {{ resumen.evento }}</p>
-    <p><strong>Tipo de evento:</strong> {{ resumen.tipo_evento }}</p>
-    <p><strong>Show presentado:</strong> {{ resumen.show_presentado }}</p>
-    <p><strong>Género musical:</strong> {{ resumen.genero_musical }}</p>
-    <p><strong>Promociones:</strong> {{ resumen.promociones }}</p>
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Evaluar Casos Similares</h1>
 
-    <!-- Mostrar el último registro de RegistroStock -->
-    <h2>Último registro de inventario:</h2>
-    {% if ultimo_registro == "No hay registros en la tabla." %}
-        <p>{{ ultimo_registro }}</p>
+    <!-- Formulario de Evaluación -->
+    <form method="POST" action="{% url 'analizador:evaluar_casos' %}" class="needs-validation" novalidate>
+        {% csrf_token %}
+        <div class="card p-4 mb-4">
+            <h3 class="text-center mb-3">Ingrese los parámetros para la evaluación:</h3>
+            {{ form.as_p }}
+        </div>
+
+        <!-- Errores del Formulario -->
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Botón de Enviar -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-paper-plane"></i> Enviar
+            </button>
+        </div>
+    </form>
+
+    <!-- Resultados de Casos Similares -->
+    {% if casos_con_artista %}
+    <div class="mt-5">
+        <h2 class="text-center mb-4">Casos Similares Encontrados</h2>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Evento</th>
+                        <th>Banda</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for caso in casos_con_artista %}
+                    <tr>
+                        <td>{{ caso.caso }}</td>
+                        <td>{{ caso.banda }}</td>
+                        <td>{{ caso.fecha }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     {% else %}
-        <!-- Asegúrate de que estos campos existan en tu modelo RegistroStock -->
-        <p><strong>Inventario JSON:</strong> {{ ultimo_registro.inventario_json }}</p>
-        <p><strong>Fecha:</strong> {{ ultimo_registro.fecha }}</p>
-        <!-- Agrega otros campos según lo que tenga tu modelo -->
+    <p class="text-center text-muted mt-5">No se encontraron casos similares.</p>
     {% endif %}
-
-    <!-- Botones de acción -->
-    <a href="{% url 'analizador:entrada' %}" class="btn btn-primary">Ir a Entrada</a>
-
-    <a href="{% url 'analizador:evaluar_casos_similares' %}" class="btn btn-primary">Evaluar Casos Similares</a>
-
-</html>
+</div>
+{% endblock %}

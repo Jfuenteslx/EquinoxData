@@ -1,34 +1,46 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Evaluación de Casos Similares</title>
-</head>
-<body>
-    <h1>Evaluación de Casos Similares</h1>
+{% extends 'base.html' %}
 
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Evaluar</button>
-    </form>
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Evaluación de Casos Similares</h1>
 
+    <!-- Formulario -->
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <form method="POST" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="form-row">
+                    {{ form.as_p }}
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Evaluar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados -->
     {% if casos_similares %}
-    <h2>Casos Similares Encontrados:</h2>
-    <ul>
-        {% for caso in casos_similares %}
-        <li>
-            <p><strong>Evento:</strong> {{ caso.evento }}</p>
-            <p><strong>Ventas:</strong> {{ caso.ventas }}</p>
-            <p><strong>Consumo:</strong> {{ caso.consumo }}</p>
-            <!-- Agrega más detalles de los casos si es necesario -->
-        </li>
-        {% endfor %}
-    </ul>
-    <h3>Recomendación de Compra:</h3>
-    <p>{{ recomendacion_compra }}</p>
+        <h2 class="mb-4">Casos Similares Encontrados</h2>
+        <ul class="list-group mb-4">
+            {% for caso in casos_similares %}
+                <li class="list-group-item">
+                    <p><strong>Evento:</strong> {{ caso.evento }}</p>
+                    <p><strong>Ventas:</strong> {{ caso.ventas }}</p>
+                    <p><strong>Consumo:</strong> {{ caso.consumo }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+        <h3 class="mt-4">Recomendación de Compra</h3>
+        <div class="alert alert-info" role="alert">
+            {{ recomendacion_compra }}
+        </div>
     {% else %}
-    <p>No se encontraron casos similares.</p>
+        <div class="alert alert-warning text-center mt-4" role="alert">
+            No se encontraron casos similares.
+        </div>
     {% endif %}
-</body>
-</html>
+</div>
+{% endblock %}

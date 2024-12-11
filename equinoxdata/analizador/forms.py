@@ -1,17 +1,16 @@
 from django import forms
-from .models import Parametro, Evento
+from .models import Evento, Parametro
+from django.utils.timezone import now  # Importación correcta de 'now'
 
 class ParametrosForm(forms.ModelForm):
-    # Nuevos campos con widgets personalizados
     evento = forms.ModelChoiceField(
-        queryset=Evento.objects.filter(fecha__gte="2024-11-01"),
+        queryset=Evento.objects.filter(fecha__gte=now()),  # Uso correcto de 'now()'
         label="Evento",
         required=True,
         widget=forms.Select(attrs={
-            'class': 'form-control',
+            'class': 'form-control col-12',
         })
     )
-    # Campos existentes con widgets de Bootstrap
     aforo = forms.IntegerField(
         label="Aforo esperado",
         required=True,
@@ -37,6 +36,15 @@ class ParametrosForm(forms.ModelForm):
         })
     )
 
+    class Meta:
+        model = Parametro
+        fields = ['evento', 'aforo', 'ventas', 'consumo']
+
+
+class BusquedaForm(forms.Form):
+    # Buscar solo eventos que tengan una fecha mayor o igual a una fecha específica
+
+
     tipo_evento = forms.ChoiceField(
         choices=[
             ("Concierto", "Concierto"),
@@ -45,7 +53,7 @@ class ParametrosForm(forms.ModelForm):
             ("Evento especial", "Evento especial"),
         ],
         label="Tipo de evento",
-        required=True,
+        required=False,
         widget=forms.Select(attrs={
             'class': 'form-control col-3',
         })
@@ -59,9 +67,10 @@ class ParametrosForm(forms.ModelForm):
             ("After Party", "After Party"),
             ("Artista Internacional o Extranjero", "Artista Internacional o Extranjero"),
             ("Fiesta tematica", "Fiesta tematica"),
+            ("Presentacion de discos", "Presentacion de discos"),
         ],
         label="Show presentado",
-        required=True,
+        required=False,
         widget=forms.Select(attrs={
             'class': 'form-control col-3',
         })
@@ -80,7 +89,7 @@ class ParametrosForm(forms.ModelForm):
             ("No aplica", "No aplica"),
         ],
         label="Género musical",
-        required=True,
+        required=False,
         widget=forms.Select(attrs={
             'class': 'form-control col-3',
         })
@@ -96,15 +105,8 @@ class ParametrosForm(forms.ModelForm):
             ("No aplica", "No aplica"),
         ],
         label="Promociones / Agregados",
-        required=True,
+        required=False,
         widget=forms.Select(attrs={
             'class': 'form-control col-3',
         })
     )
-
-    class Meta:
-        model = Parametro
-        fields = [
-            'evento', 'aforo', 'ventas', 'consumo', 
-            'tipo_evento', 'show_presentado', 'genero_musical', 'promociones'
-        ]

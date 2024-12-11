@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Casos Similares</h1>
+
+    {% if casos_con_artista %}
+        <div class="row">
+            {% for caso in casos_con_artista %}
+                <div class="col-12 col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary font-weight-bold">{{ caso.caso.evento }}</h5>
+                            <p class="card-text"><strong>Tipo de Evento:</strong> {{ caso.caso.tipo_evento }}</p>
+                            <p class="card-text"><strong>Show Presentado:</strong> {{ caso.caso.show_presentado }}</p>
+                            <p class="card-text"><strong>Género Musical:</strong> {{ caso.caso.genero_musical }}</p>
+                            <p class="card-text"><strong>Promociones:</strong> {{ caso.caso.promociones }}</p>
+                            <p class="card-text"><strong>Artista:</strong> {{ caso.artista }}</p>
+                            <p class="card-text"><strong>Fecha del Evento:</strong> {{ caso.fecha_evento }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center text-muted">No se encontraron casos similares.</p>
+    {% endif %}
+</div>
+{% endblock %}
