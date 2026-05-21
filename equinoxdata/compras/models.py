@@ -2,44 +2,70 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from usuarios.models import Usuario
-from productos.models import ProductoBase  # Asumiendo que el ProductoBase está en la app productos
+from productos.models import ProductoBase
 
 
 class Compra(models.Model):
-    producto = models.ForeignKey(ProductoBase, on_delete=models.CASCADE)  # Relación con ProductoBase
-    personal = models.ForeignKey(Usuario, on_delete=models.CASCADE)  # Usuario que registra la compra
-    cantidad = models.IntegerField()  # Cantidad de botellas compradas
-    precio = models.DecimalField(max_digits=10, decimal_places=2)  # Precio de compra por botella
-    fecha = models.DateTimeField(default=timezone.now)  # Usando timezone.now()
+    """Cabecera de una compra de insumos."""
+    fecha = models.DateTimeField(default=timezone.now)
+    personal = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name='compras'
+    )
+    observaciones = models.TextField(blank=True, null=True)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = "Compra"
+        verbose_name_plural = "Compras"
+        ordering = ['-fecha']
 
     def __str__(self):
-        return f"Compra de {self.cantidad} botellas de {self.producto.nombre} por {self.precio} cada una"
+        return f"Compra #{self.id} — {self.fecha.strftime('%d/%m/%Y')} por {self.personal.username}"
+
+    def calcular_total(self):
+        """Recalcula el total sumando todos los detalles."""
+        self.total = sum(
+            item.subtotal for item in self.detalles.all()
+        )
+        self.save()
+
+
+class DetalleCompra(models.Model):
+    """Detalle de cada insumo comprado."""
+    compra = models.ForeignKey(
+        Compra,
+        on_delete=models.CASCADE,
+        related_name='detalles'
+    )
+    producto = models.ForeignKey(
+        ProductoBase,
+        on_delete=models.CASCADE,
+        related_name='compras'
+    )
+    cantidad_botellas = models.IntegerField(
+        help_text="Cantidad de botellas o unidades compradas."
+    )
+    precio_unitario = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Precio por botella o unidad."
+    )
+
+    class Meta:
+        verbose_name = "Detalle de Compra"
+        verbose_name_plural = "Detalles de Compra"
+
+    @property
+    def subtotal(self):
+        return self.cantidad_botellas * self.precio_unitario
+
+    def __str__(self):
+        return f"{self.cantidad_botellas} x {self.producto.nombre} @ Bs.{self.precio_unitario}"
 
     def clean(self):
-        """
-        Validaciones personalizadas antes de guardar la compra.
-        Asegura que la cantidad y el precio sean válidos.
-        """
-        # Validar que la cantidad no sea negativa
-        if self.cantidad <= 0:
+        if self.cantidad_botellas <= 0:
             raise ValidationError("La cantidad debe ser mayor que cero.")
-
-        # Validar que el precio no sea negativo o cero
-        if self.precio <= 0:
+        if self.precio_unitario <= 0:
             raise ValidationError("El precio debe ser mayor que cero.")
-
-
-class Pedido(models.Model):
-    fecha = models.DateField()
-    pedido = models.JSONField()  # Información del pedido (detalles de los productos y cantidades)
-
-
-    def __str__(self):
-        return f"Pedido realizado el {self.fecha} relacionado con la compra {self.compra.id}"
-
-
-
-def save(self, *args, **kwargs):
-    super().save(*args, **kwargs)
-    inventario = Inventario.objects.get(producto=self.producto)
-    inventario.calcular_stock_final()

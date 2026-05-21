@@ -1,63 +1,100 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<div class="container mt-5">
-    <!-- Título principal -->
-    <h1 class="text-center mb-4">Ventas Totales del Día</h1>
 
-    <!-- Formulario para seleccionar la fecha -->
-    <form method="GET" action="{% url 'ventas:ventas_totales_del_dia' %}" class="mb-4">
-        <div class="form-row align-items-center">
-            <div class="col-auto">
-                <label for="fecha" class="sr-only">Seleccionar fecha:</label>
-                <input type="date" id="fecha" name="fecha" value="{{ fecha_filtro|date:'Y-m-d' }}" class="form-control">
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter"></i> Filtrar
-                </button>
-            </div>
-        </div>
-    </form>
-
-<!-- Resumen de ventas -->
-<h2 class="text-center text-info mb-4">Resumen de Ventas para el {{ fecha_filtro }}</h2>
-<div class="table-responsive">
-    <table class="table table-bordered table-hover">
-        <thead class="thead-dark">
-            <tr>
-                <th>ID</th>
-                <th>Producto</th>
-                <th class="text-center">Cantidad Vendida</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if resumen_ventas %}
-                {% for producto, datos in resumen_ventas.items %}
-                    <tr>
-                        <td>{{ datos.producto_id }}</td>  <!-- Muestra el ID del producto -->
-                        <td>{{ producto }}</td>           <!-- Muestra el nombre del producto -->
-                        <td class="text-center">{{ datos.total_vendido }}</td> <!-- Muestra la cantidad vendida -->
-                        <td>{{ datos.total }}</td>        <!-- Muestra el total calculado -->
-                    </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="4" class="text-center">No hay ventas para esta fecha.</td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
-</div>
-
-    <!-- Formulario para consolidar las ventas -->
-    <div class="text-center mt-4">
-        <form method="post">
-            {% csrf_token %}
-            <button type="submit" name="consolidar_ventas" class="btn btn-success">Consolidar Ventas</button>
-        </form>
-        
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Consolidar Ventas</h1>
     </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        <!-- Filtro de fecha -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="get" class="form-inline">
+                    <label class="mr-2">Fecha:</label>
+                    <input type="date" name="fecha" value="{{ fecha_filtro }}" class="form-control mr-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search mr-1"></i> Buscar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resumen de ventas -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Ventas del {{ fecha_filtro }}</h3>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th class="text-center">Cantidad total</th>
+                            <th class="text-right">Total Bs.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nombre, datos in resumen_ventas.items %}
+                        <tr>
+                            <td>{{ nombre }}</td>
+                            <td>{{ datos.tipo }}</td>
+                            <td class="text-center">{{ datos.total_vendido }}</td>
+                            <td class="text-right">Bs. {{ datos.total }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No hay ventas para esta fecha.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sesiones del dia para consolidar -->
+        {% if sesiones_del_dia %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3 class="card-title">Sesiones del dia — Consolidar</h3>
+            </div>
+            <div class="card-body">
+                {% for sesion in sesiones_del_dia %}
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <strong>{{ sesion.usuario_encargado.username }}</strong>
+                        <small class="text-muted ml-2">{{ sesion.fecha_inicio|date:"H:i" }} — {{ sesion.fecha_fin|date:"H:i"|default:"Abierta" }}</small>
+                        <span class="badge {% if sesion.estado == 'abierta' %}badge-success{% else %}badge-secondary{% endif %} ml-2">
+                            {{ sesion.get_estado_display }}
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Bs. {{ sesion.total_ventas }}</strong>
+                        {% if not sesion.consolidacion %}
+                        <form method="post" class="d-inline ml-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="consolidar_ventas" value="1">
+                            <input type="hidden" name="sesion_id" value="{{ sesion.id }}">
+                            <button type="submit" class="btn btn-primary btn-sm"
+                                onclick="return confirm('¿Consolidar las ventas de esta sesion?')">
+                                <i class="fas fa-check mr-1"></i> Consolidar
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="badge badge-success ml-3">Consolidada</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
 {% endblock %}

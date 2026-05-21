@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">
+            {% if producto %}Editar Producto{% else %}Nuevo Producto del Menu{% endif %}
+        </h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            {% if producto %}Editando: {{ producto.nombre }}{% else %}Registrar producto{% endif %}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            <div class="form-group">
+                                <label>Nombre en el menu *</label>
+                                {{ form.nombre }}
+                                {% if form.nombre.errors %}<small class="text-danger">{{ form.nombre.errors.0 }}</small>{% endif %}
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Tipo de producto *</label>
+                                    {{ form.tipo }}
+                                    {% if form.tipo.errors %}<small class="text-danger">{{ form.tipo.errors.0 }}</small>{% endif %}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Precio de venta (Bs.) *</label>
+                                    {{ form.precio }}
+                                    {% if form.precio.errors %}<small class="text-danger">{{ form.precio.errors.0 }}</small>{% endif %}
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Insumo base</label>
+                                    {{ form.insumo_base }}
+                                    <small class="text-muted">No aplica para extras ni cocteles con receta.</small>
+                                    {% if form.insumo_base.errors %}<small class="text-danger">{{ form.insumo_base.errors.0 }}</small>{% endif %}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Medidas por venta</label>
+                                    {{ form.medidas_por_venta }}
+                                    <small class="text-muted">Solo para tipo Vaso.</small>
+                                    {% if form.medidas_por_venta.errors %}<small class="text-danger">{{ form.medidas_por_venta.errors.0 }}</small>{% endif %}
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-check">
+                                    {{ form.habilitado }}
+                                    <label class="form-check-label ml-2">Disponible en menu</label>
+                                </div>
+                            </div>
+
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                            {% endif %}
+
+                            <!-- Receta para cocteles/jarras -->
+                            <div id="seccion-receta" style="display:none;">
+                                <hr>
+                                <h5>Receta del coctel / jarra</h5>
+                                {{ formset.management_form }}
+                                {% for receta_form in formset %}
+                                <div class="form-row align-items-center mb-2">
+                                    <div class="col-md-5">
+                                        {{ receta_form.insumo }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {{ receta_form.cantidad_medidas }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        {% if receta_form.DELETE %}
+                                        <div class="form-check">
+                                            {{ receta_form.DELETE }}
+                                            <label class="form-check-label ml-1">Eliminar</label>
+                                        </div>
+                                        {% endif %}
+                                        {{ receta_form.id }}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{% url 'productos:producto-menu-list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left mr-1"></i> Volver
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save mr-1"></i> Guardar
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h3 class="card-title">Tipos de producto</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr><td><span class="badge badge-primary">Botella</span></td><td>Vende botella entera, descuenta 1 botella del inventario</td></tr>
+                                <tr><td><span class="badge badge-info">Vaso</span></td><td>Vende medidas sueltas, descuenta N medidas del inventario</td></tr>
+                                <tr><td><span class="badge badge-warning">Coctel/Jarra</span></td><td>Preparacion con receta, descuenta segun ingredientes</td></tr>
+                                <tr><td><span class="badge badge-secondary">Extra</span></td><td>Cerveza, refresco, etc. Descuenta 1 unidad</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.getElementById('id_tipo');
+    const seccionReceta = document.getElementById('seccion-receta');
+
+    function toggleReceta() {
+        if (tipoSelect.value === 'coctel_jarra') {
+            seccionReceta.style.display = 'block';
+        } else {
+            seccionReceta.style.display = 'none';
+        }
+    }
+
+    tipoSelect.addEventListener('change', toggleReceta);
+    toggleReceta();
+});
+</script>
+
+{% endblock %}

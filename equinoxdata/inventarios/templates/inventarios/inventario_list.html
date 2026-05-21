@@ -1,61 +1,167 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Inventario</h2>
 
-    <!-- Botones de navegación -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <a href="{% url 'inventarios:saldo_list' %}" class="btn btn-info btn-block">
-                Ver Saldos
-            </a>
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0 text-dark">Inventario</h1>
+            </div>
         </div>
-        <div class="col-md-4">
-            <a href="{% url 'inventarios:consolidar_inventario' %}" class="btn btn-success btn-block">
-                Consolidar Inventario
-            </a>
-        </div>
-        <div class="col-md-4">
-            <a href="{% url 'inventarios:inicializar_inventarios' %}" class="btn btn-secondary btn-block">
-                inicializar inventarios
-            </a>
-        </div>
-    </div>
-
-    <!-- Tabla de inventarios -->
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Nro de movimiento</th>
-                    <th>Producto</th>
-                    <th>Saldo en bodega</th>
-                    <th>Marca de tiempo</th>
-                    <th>Estado</th>
-                    <th>Historial</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inventario in inventarios %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ inventario.producto.nombre }}</td>
-                    <td>{{ inventario.saldo_bodega }}</td>
-                    <td>{{ inventario.fecha_ingreso }}</td>
-                    <td>{{ inventario.actualizar_estado }}</td>
-                    <td>
-                        <a href="{% url 'inventarios:inventario_historial' inventario.id %}" class="btn btn-primary btn-sm">
-                            Ver historial
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center">No hay inventarios registrados.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{% url 'inventarios:apertura_diaria' %}" class="btn btn-primary">
+                    <i class="fas fa-clipboard-list mr-1"></i> Apertura del dia
+                </a>
+                <a href="{% url 'inventarios:historial_movimientos' %}" class="btn btn-secondary ml-2">
+                    <i class="fas fa-history mr-1"></i> Historial
+                </a>
+            </div>
+            <div>
+                <button id="btn-tabla" class="btn btn-sm btn-outline-secondary active">
+                    <i class="fas fa-table"></i> Tabla
+                </button>
+                <button id="btn-tarjetas" class="btn btn-sm btn-outline-secondary ml-1">
+                    <i class="fas fa-th"></i> Tarjetas
+                </button>
+            </div>
+        </div>
+
+        <!-- Vista tabla -->
+        <div id="vista-tabla">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Stock actual — {{ hoy }}</h3>
+                </div>
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-hover text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>Insumo</th>
+                                <th>Unidad</th>
+                                <th>Botellas</th>
+                                <th>Medidas sueltas</th>
+                                <th>Apertura hoy</th>
+                                <th>Discrepancia</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inv in inventarios %}
+                            <tr>
+                                <td><strong>{{ inv.producto.nombre }}</strong></td>
+                                <td>{{ inv.producto.get_unidad_medida_display }}</td>
+                                <td>{{ inv.botellas }}</td>
+                                <td>{{ inv.medidas_sueltas }}</td>
+                                <td>
+                                    {% if inv.apertura_hoy %}
+                                    <span class="badge badge-success">
+                                        {{ inv.apertura_hoy.botellas_contadas }} bot. / {{ inv.apertura_hoy.medidas_contadas }} med.
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-secondary">Sin apertura</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if inv.disc_botellas is not None %}
+                                        {% if inv.disc_botellas == 0 and inv.disc_medidas == 0 %}
+                                        <span class="badge badge-success">Sin diferencia</span>
+                                        {% else %}
+                                        <span class="badge badge-warning">
+                                            Bot: {{ inv.disc_botellas }} / Med: {{ inv.disc_medidas }}
+                                        </span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'inventarios:ajustar_inventario' inv.producto.id %}" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i> Ajustar
+                                    </a>
+                                    <a href="{% url 'inventarios:historial_producto' inv.producto.id %}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-history"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No hay insumos en inventario.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista tarjetas -->
+        <div id="vista-tarjetas" style="display:none;">
+            <div class="row">
+                {% for inv in inventarios %}
+                <div class="col-md-4 col-sm-6">
+                    <div class="card {% if inv.botellas == 0 %}card-danger{% elif inv.botellas <= 2 %}card-warning{% else %}card-success{% endif %}">
+                        <div class="card-header">
+                            <h3 class="card-title">{{ inv.producto.nombre }}</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h3>{{ inv.botellas }}</h3>
+                                    <small>Botellas</small>
+                                </div>
+                                <div class="col-6">
+                                    <h3>{{ inv.medidas_sueltas }}</h3>
+                                    <small>Medidas</small>
+                                </div>
+                            </div>
+                            {% if inv.apertura_hoy %}
+                            <hr>
+                            <small class="text-muted">
+                                Apertura: {{ inv.apertura_hoy.botellas_contadas }} bot. / {{ inv.apertura_hoy.medidas_contadas }} med.
+                            </small>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'inventarios:ajustar_inventario' inv.producto.id %}" class="btn btn-sm btn-light">
+                                <i class="fas fa-edit"></i> Ajustar
+                            </a>
+                            <a href="{% url 'inventarios:historial_producto' inv.producto.id %}" class="btn btn-sm btn-light ml-1">
+                                <i class="fas fa-history"></i> Historial
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <p class="text-center text-muted">No hay insumos en inventario.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<script>
+document.getElementById('btn-tabla').addEventListener('click', function() {
+    document.getElementById('vista-tabla').style.display = 'block';
+    document.getElementById('vista-tarjetas').style.display = 'none';
+    this.classList.add('active');
+    document.getElementById('btn-tarjetas').classList.remove('active');
+});
+document.getElementById('btn-tarjetas').addEventListener('click', function() {
+    document.getElementById('vista-tabla').style.display = 'none';
+    document.getElementById('vista-tarjetas').style.display = 'block';
+    this.classList.add('active');
+    document.getElementById('btn-tabla').classList.remove('active');
+});
+</script>
+
 {% endblock %}

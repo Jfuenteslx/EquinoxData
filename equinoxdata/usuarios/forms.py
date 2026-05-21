@@ -1,33 +1,44 @@
-# usuarios/forms.py
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
+from django.contrib.auth.forms import AuthenticationForm
 from .models import Usuario
 
-# Formulario de inicio de sesión
+
 class LoginForm(forms.Form):
     username = forms.CharField(max_length=150, required=True)
     password = forms.CharField(widget=forms.PasswordInput, required=True)
 
-# Formulario para crear un nuevo usuario
-class UsuarioCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True)  # Cambié 'correo' por 'email'
-
-    class Meta:
-        model = Usuario
-        fields = ['username', 'email', 'password1', 'password2']  # Cambié 'correo' por 'email'
-
 class UsuarioForm(forms.ModelForm):
+    password = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Dejar vacío para no cambiar'}),
+        label='Contraseña'
+    )
+
     class Meta:
         model = Usuario
-        fields = ['username', 'first_name', 'last_name', 'rol', 'CI', 'is_active', 'is_staff']
+        fields = ['username', 'first_name', 'last_name', 'rol', 'CI', 'is_active']
         widgets = {
-            'is_active': forms.CheckboxInput(),
-            'is_staff': forms.CheckboxInput(),
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'rol': forms.Select(attrs={'class': 'form-control'}),
+            'CI': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'username': 'Nombre de usuario',
+            'first_name': 'Nombre',
+            'last_name': 'Apellido',
+            'rol': 'Rol',
+            'CI': 'Carnet de identidad',
+            'is_active': 'Usuario activo',
         }
 
-    def __init__(self, *args, **kwargs):
-        super(UsuarioForm, self).__init__(*args, **kwargs)
-        # Puedes personalizar los widgets, por ejemplo, cambiando el tipo de los campos booleanos
-        self.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
-        self.fields['is_staff'].widget.attrs.update({'class': 'form-check-input'})
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        password = self.cleaned_data.get('password')
+        if password:
+            usuario.set_password(password)
+        if commit:
+            usuario.save()
+        return usuario

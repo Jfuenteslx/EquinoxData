@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Apertura Diaria — {{ hoy }}</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        {% if ya_apertura %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle mr-1"></i>
+            Ya existe una apertura registrada para hoy. Solo puede realizarse una apertura por dia.
+            <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-sm btn-warning ml-3">Ver inventario</a>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Conteo fisico de insumos</h3>
+                <div class="card-tools">
+                    <small class="text-muted">Ingrese las cantidades contadas fisicamente en bodega</small>
+                </div>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="card-body p-0">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Insumo</th>
+                                <th>Unidad</th>
+                                <th class="text-center">Stock sistema</th>
+                                <th class="text-center">Botellas contadas</th>
+                                <th class="text-center">Medidas contadas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fila in filas %}
+                            <tr>
+                                <td><strong>{{ fila.producto.nombre }}</strong></td>
+                                <td>{{ fila.producto.get_unidad_medida_display }}</td>
+                                <td class="text-center">
+                                    {% if fila.inventario %}
+                                        {{ fila.inventario.botellas }} bot. / {{ fila.inventario.medidas_sueltas }} med.
+                                    {% else %}
+                                        <span class="text-muted">Sin registro</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">{{ fila.campo_botellas }}</td>
+                                <td class="text-center">{{ fila.campo_medidas }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No hay insumos habilitados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left mr-1"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-1"></i> Guardar apertura
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
+{% endblock %}

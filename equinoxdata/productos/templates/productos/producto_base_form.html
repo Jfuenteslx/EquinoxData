@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">
+            {% if object %}Editar Insumo{% else %}Nuevo Insumo{% endif %}
+        </h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            {% if object %}Editando: {{ object.nombre }}{% else %}Registrar nuevo insumo{% endif %}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{% url 'productos:producto-base-list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left mr-1"></i> Volver
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save mr-1"></i> Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h3 class="card-title">Guia de medidas</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Volumen</th><th>Medidas</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>700 ml</td><td>15 medidas</td></tr>
+                                <tr><td>750 ml</td><td>16 medidas</td></tr>
+                                <tr><td>1000 ml (1L)</td><td>20 medidas</td></tr>
+                            </tbody>
+                        </table>
+                        <small class="text-muted">Una medida equivale a aproximadamente 45ml.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

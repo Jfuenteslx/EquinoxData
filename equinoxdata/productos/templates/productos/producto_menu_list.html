@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0 text-dark">Menu de Productos</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        <div class="mb-3">
+            <a href="{% url 'productos:producto-menu-create' %}" class="btn btn-success">
+                <i class="fas fa-plus mr-1"></i> Agregar Producto
+            </a>
+            <a href="{% url 'productos:producto-base-list' %}" class="btn btn-secondary ml-2">
+                <i class="fas fa-boxes mr-1"></i> Ver Insumos
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Productos en el Menu</h3>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover text-nowrap">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Insumo Base</th>
+                            <th>Medidas/Venta</th>
+                            <th>Precio Venta</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in productos_menu %}
+                        <tr>
+                            <td>{{ producto.id }}</td>
+                            <td>{{ producto.nombre }}</td>
+                            <td>
+                                <span class="badge
+                                    {% if producto.tipo == 'botella' %}badge-primary
+                                    {% elif producto.tipo == 'vaso' %}badge-info
+                                    {% elif producto.tipo == 'coctel_jarra' %}badge-warning
+                                    {% else %}badge-secondary{% endif %}">
+                                    {{ producto.get_tipo_display }}
+                                </span>
+                            </td>
+                            <td>{{ producto.insumo_base.nombre|default:"—" }}</td>
+                            <td>
+                                {% if producto.tipo == 'vaso' %}
+                                    {{ producto.medidas_por_venta }}
+                                {% elif producto.tipo == 'coctel_jarra' %}
+                                    Ver receta
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>Bs. {{ producto.precio }}</td>
+                            <td>
+                                {% if producto.habilitado %}
+                                <span class="badge badge-success">Activo</span>
+                                {% else %}
+                                <span class="badge badge-secondary">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'productos:producto-menu-update' producto.id %}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <a href="{% url 'productos:producto-menu-delete' producto.id %}" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">No hay productos en el menu.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

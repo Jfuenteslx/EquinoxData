@@ -1,142 +1,189 @@
-
-from django.http import JsonResponse
-
-from .forms import PresentacionProductoForm
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils.decorators import method_decorator
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
 
-from .models import ProductoBase, PresentacionProducto, Receta
-from .forms import ProductoBaseForm, RecetaForm, PresentacionProductoForm
-
-
-def productosview(request):
-    return render(request, 'productos/productos.html')
-
+from .models import ProductoBase, ProductoMenu, RecetaItem
+from .forms import ProductoBaseForm, ProductoMenuForm, RecetaItemFormSet
 
 
-# Vista para listar productos base
-def listar_producto_base(request):
-    productos = ProductoBase.objects.all()
-    return render(request, 'productos/lista_producto_base.html', {'productos': productos})
+# ------------------------------------------------------------------
+# Vista principal
+# ------------------------------------------------------------------
 
-# Vista para crear un nuevo producto base
-def crear_producto(request):
+@login_required
+def productos_view(request):
+    if not request.user.tiene_acceso_compras():
+        messages.error(request, 'No tiene permisos para acceder a esta seccion.')
+        return redirect('usuarios:inicio')
+    total_insumos = ProductoBase.objects.filter(habilitado=True).count()
+    total_menu = ProductoMenu.objects.filter(habilitado=True).count()
+    return render(request, 'productos/productos.html', {
+        'total_insumos': total_insumos,
+        'total_menu': total_menu,
+    })
+
+
+# ------------------------------------------------------------------
+# CRUD ProductoBase (Insumos)
+# ------------------------------------------------------------------
+
+@method_decorator(login_required, name='dispatch')
+class ProductoBaseListView(ListView):
+    model = ProductoBase
+    template_name = 'productos/producto_base_list.html'
+    context_object_name = 'productos_base'
+    ordering = ['nombre']
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.tiene_acceso_compras():
+            messages.error(request, 'No tiene permisos para acceder a esta seccion.')
+            return redirect('usuarios:inicio')
+        return super().dispatch(request, *args, **kwargs)
+
+@login_required
+def producto_base_create(request):
+    if not request.user.tiene_acceso_compras():
+        messages.error(request, 'No tiene permisos para realizar esta accion.')
+        return redirect('usuarios:inicio')
     if request.method == 'POST':
         form = ProductoBaseForm(request.POST)
         if form.is_valid():
-            form.save()  # Guarda el nuevo producto
-            return redirect('productos:listar_base')
+            producto = form.save()
+            messages.success(request, f'Insumo "{producto.nombre}" creado correctamente.')
+            return redirect('productos:producto-base-list')
     else:
         form = ProductoBaseForm()
-    return render(request, 'productos/crear_producto.html', {'form': form})
+    return render(request, 'productos/producto_base_form.html', {'form': form})
 
-# Vista para editar un producto base
-def editar_producto(request):
+
+@login_required
+def producto_base_update(request, pk):
+    if not request.user.tiene_acceso_compras():
+        messages.error(request, 'No tiene permisos para realizar esta accion.')
+        return redirect('usuarios:inicio')
+    producto = get_object_or_404(ProductoBase, pk=pk)
     if request.method == 'POST':
-        producto_id = request.POST.get('producto_id')
-        producto = ProductoBase.objects.get(id=producto_id)
         form = ProductoBaseForm(request.POST, instance=producto)
         if form.is_valid():
             form.save()
-            return redirect('productos:listar_base')
-    return redirect('productos:listar_base')
-
-# Vista para eliminar un producto base
-def eliminar_producto(request):
-    if request.method == 'POST':
-        producto_id = request.POST.get('producto_id')
-        producto = ProductoBase.objects.get(id=producto_id)
-        producto.delete()
-        return redirect('productos:listar_base')
-    return redirect('productos:listar_base')
-
-# vistas para recetas
-# ---------------------------------
-
-def listar_recetas(request):
-    # Filtrar ProductoBase para mostrar solo aquellos que son insumos
-    insumos = ProductoBase.objects.filter(categoria=True)  # Suponiendo que hay un campo 'es_insumo'
-
-    # Pasar las recetas y los insumos filtrados
-    recetas = Receta.objects.all()
-    return render(request, 'productos/listar_recetas.html', {'recetas': recetas, 'insumos': insumos})
-
-def crear_receta(request):
-    if request.method == 'POST':
-        form = RecetaForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Receta creada exitosamente.")
-            return redirect('productos:listar_recetas')
+            messages.success(request, f'Insumo "{producto.nombre}" actualizado correctamente.')
+            return redirect('productos:producto-base-list')
     else:
-        form = RecetaForm()
-    return render(request, 'productos/crear_receta.html', {'form': form})
+        form = ProductoBaseForm(instance=producto)
+    return render(request, 'productos/producto_base_form.html', {
+        'form': form,
+        'object': producto
+    })
 
-def editar_receta(request, pk):
-    receta = get_object_or_404(Receta, pk=pk)
+@method_decorator(login_required, name='dispatch')
+class ProductoBaseDeleteView(DeleteView):
+    model = ProductoBase
+    template_name = 'productos/producto_base_confirm_delete.html'
+    success_url = reverse_lazy('productos:producto-base-list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.es_administrador():
+            messages.error(request, 'Solo el administrador puede eliminar insumos.')
+            return redirect('usuarios:inicio')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Insumo eliminado correctamente.')
+        return super().form_valid(form)
+
+
+# ------------------------------------------------------------------
+# CRUD ProductoMenu
+# ------------------------------------------------------------------
+
+@method_decorator(login_required, name='dispatch')
+class ProductoMenuListView(ListView):
+    model = ProductoMenu
+    template_name = 'productos/producto_menu_list.html'
+    context_object_name = 'productos_menu'
+    ordering = ['tipo', 'nombre']
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.tiene_acceso_compras():
+            messages.error(request, 'No tiene permisos para acceder a esta seccion.')
+            return redirect('usuarios:inicio')
+        return super().dispatch(request, *args, **kwargs)
+
+
+@login_required
+def producto_menu_create(request):
+    if not request.user.tiene_acceso_compras():
+        messages.error(request, 'No tiene permisos para realizar esta accion.')
+        return redirect('usuarios:inicio')
 
     if request.method == 'POST':
-        form = RecetaForm(request.POST, instance=receta)
-
+        form = ProductoMenuForm(request.POST)
+        formset = RecetaItemFormSet(request.POST)
         if form.is_valid():
-            form.save()
-
-            if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
-                # Si es una solicitud AJAX, puedes devolver una respuesta JSON
-                return JsonResponse({'message': 'Receta actualizada exitosamente'})
+            producto = form.save(commit=False)
+            if producto.tipo == 'coctel_jarra':
+                formset = RecetaItemFormSet(request.POST, instance=producto)
+                if formset.is_valid():
+                    producto.save()
+                    formset.save()
+                    messages.success(request, f'Producto "{producto.nombre}" creado con receta.')
+                    return redirect('productos:producto-menu-list')
             else:
-                # Si no es AJAX, redirige a la vista adecuada
-                return redirect('productos:listar_recetas')  # O el nombre de la vista de tu elección
+                producto.save()
+                messages.success(request, f'Producto "{producto.nombre}" creado correctamente.')
+                return redirect('productos:producto-menu-list')
     else:
-        form = RecetaForm(instance=receta)
+        form = ProductoMenuForm()
+        formset = RecetaItemFormSet()
 
-    return render(request, 'productos/editar_receta.html', {'form': form})
+    return render(request, 'productos/producto_menu_form.html', {
+        'form': form,
+        'formset': formset,
+    })
 
 
+@login_required
+def producto_menu_update(request, pk):
+    if not request.user.tiene_acceso_compras():
+        messages.error(request, 'No tiene permisos para realizar esta accion.')
+        return redirect('usuarios:inicio')
 
-def eliminar_receta(request, receta_id):
-    receta = get_object_or_404(Receta, id=receta_id)
+    producto = get_object_or_404(ProductoMenu, pk=pk)
+
     if request.method == 'POST':
-        receta.delete()
-        messages.success(request, "Receta eliminada exitosamente.")
-        return redirect('productos:listar_recetas')
-    return render(request, 'productos/eliminar_receta.html', {'receta': receta})
+        form = ProductoMenuForm(request.POST, instance=producto)
+        formset = RecetaItemFormSet(request.POST, instance=producto)
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            messages.success(request, f'Producto "{producto.nombre}" actualizado correctamente.')
+            return redirect('productos:producto-menu-list')
+    else:
+        form = ProductoMenuForm(instance=producto)
+        formset = RecetaItemFormSet(instance=producto)
 
-# ---------------------------------
-# modelo presentacionproducto
-# -------------------------------
-# vistas
+    return render(request, 'productos/producto_menu_form.html', {
+        'form': form,
+        'formset': formset,
+        'producto': producto,
+    })
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.urls import reverse_lazy
-from .models import PresentacionProducto
-from .forms import PresentacionProductoForm
 
-# Listado de presentaciones
-class PresentacionProductoListView(ListView):
-    model = PresentacionProducto
-    template_name = 'productos/presentacionproducto_list.html'
-    context_object_name = 'presentaciones'
+@method_decorator(login_required, name='dispatch')
+class ProductoMenuDeleteView(DeleteView):
+    model = ProductoMenu
+    template_name = 'productos/producto_menu_confirm_delete.html'
+    success_url = reverse_lazy('productos:producto-menu-list')
 
-# Crear una nueva presentación
-class PresentacionProductoCreateView(CreateView):
-    model = PresentacionProducto
-    form_class = PresentacionProductoForm
-    template_name = 'productos/presentacionproducto_form.html'
-    success_url = reverse_lazy('productos:listar_presentaciones')
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.es_administrador():
+            messages.error(request, 'Solo el administrador puede eliminar productos del menu.')
+            return redirect('usuarios:inicio')
+        return super().dispatch(request, *args, **kwargs)
 
-# Editar una presentación existente
-class PresentacionProductoUpdateView(UpdateView):
-    model = PresentacionProducto
-    form_class = PresentacionProductoForm
-    template_name = 'productos/presentacionproducto_form.html'
-    success_url = reverse_lazy('productos:listar_presentaciones')
-
-# Eliminar una presentación
-class PresentacionProductoDeleteView(DeleteView):
-    model = PresentacionProducto
-    template_name = 'productos/presentacionproducto_confirm_delete.html'
-    success_url = reverse_lazy('productos:listar_presentaciones')
+    def form_valid(self, form):
+        messages.success(self.request, 'Producto eliminado correctamente.')
+        return super().form_valid(form)

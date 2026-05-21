@@ -1,18 +1,12 @@
 from django.contrib import admin
-from .models import CasoHistorico
+from .models import CasoHistorico, ParametrosEntrada, Parametro, RecomendacionCompra
+
 
 class CasoHistoricoAdmin(admin.ModelAdmin):
-    # Actualizamos list_display para mostrar los nuevos campos
-    list_display = (
-        'evento', 
-        'tipo_evento', 
-        'show_presentado', 
-        'genero_musical', 
-        'promociones', 
-        'coeficiente', 
-        'performance'
-    )
+    list_display = ('evento', 'tipo_evento', 'genero_musical', 'promociones', 'coeficiente', 'performance', 'fecha_creacion')
 
-    # Si quieres mostrar más detalles o permitir alguna funcionalidad adicional, puedes agregar más configuraciones aquí
 
 admin.site.register(CasoHistorico, CasoHistoricoAdmin)
+admin.site.register(ParametrosEntrada)
+admin.site.register(Parametro)
+admin.site.register(RecomendacionCompra)

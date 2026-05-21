@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">
+            Historial de Movimientos
+            {% if producto %}— {{ producto.nombre }}{% endif %}
+        </h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="mb-3">
+            <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-1"></i> Volver al inventario
+            </a>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Ultimos movimientos</h3>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover text-nowrap">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Insumo</th>
+                            <th>Tipo</th>
+                            <th class="text-center">Botellas</th>
+                            <th class="text-center">Medidas</th>
+                            <th>Referencia</th>
+                            <th>Registrado por</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in movimientos %}
+                        <tr>
+                            <td>{{ mov.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>{{ mov.producto.nombre }}</td>
+                            <td>
+                                <span class="badge
+                                    {% if mov.tipo == 'compra' %}badge-success
+                                    {% elif mov.tipo == 'venta' %}badge-danger
+                                    {% elif mov.tipo == 'apertura' %}badge-info
+                                    {% else %}badge-warning{% endif %}">
+                                    {{ mov.get_tipo_display }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if mov.botellas > 0 %}+{% endif %}{{ mov.botellas }}
+                            </td>
+                            <td class="text-center">
+                                {% if mov.medidas > 0 %}+{% endif %}{{ mov.medidas }}
+                            </td>
+                            <td>{{ mov.referencia|default:"—" }}</td>
+                            <td>{{ mov.registrado_por.username|default:"—" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">No hay movimientos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -1,94 +1,155 @@
 {% extends 'base.html' %}
-{% load filters %}
-
 {% block content %}
-<div class="container">
-    <h2 class="mt-4 text-center">Registrar una Compra</h2>
 
-    <!-- Mensajes de retroalimentación -->
-    {% if messages %}
-        <div class="alert alert-info mt-3">
-            <i class="fas fa-info-circle"></i>
-            {% for message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    <!-- Formulario para registrar una compra -->
-    <form method="POST" class="mt-4">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="producto">Producto</label>
-            <select name="producto" id="producto" class="form-control" required>
-                <option value="" disabled selected>Seleccione un producto</option>
-                {% for producto in productos %}
-                    <option value="{{ producto.id }}">{{ producto.nombre }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="cantidad">Cantidad</label>
-            <input type="number" name="cantidad" id="cantidad" class="form-control" placeholder="Ingrese la cantidad" required min="1">
-        </div>
-
-        <div class="form-group">
-            <label for="precio">Precio por botella</label>
-            <input type="number" name="precio" id="precio" class="form-control" placeholder="Ingrese el precio" required step="0.01" min="0.01">
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-block">Registrar Compra</button>
-    </form>
-
-    <!-- Botón para consolidar pedido -->
-    <form method="POST" action="{% url 'compras:consolidar_pedido' %}" class="mt-3">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-success btn-block">
-            Consolidar Pedido del Día
-        </button>
-    </form>
-
-    <!-- Tabla de compras registradas -->
-    <h3 class="mt-5 text-center">Compras Registradas el {{ fecha_actual }}</h3>
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover mt-3">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Precio por botella</th>
-                    <th>Total</th>
-                    <th>Registrado por</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for compra in compras_del_dia %}
-                    <tr>
-                        <td>{{ compra.producto.nombre }}</td>
-                        <td>{{ compra.cantidad }}</td>
-                        <td>{{ compra.precio }}</td>
-                        <td>{{ compra.cantidad|multiply:compra.precio }}</td>
-                        <td>{{ compra.personal.username }}</td>
-                        <td>
-                            <!-- Botón para eliminar compra -->
-                            <form method="post" action="{% url 'compras:eliminar_compra' compra.id %}" style="display:inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" 
-                                    onclick="return confirm('¿Estás seguro de que deseas eliminar esta compra?');">
-                                    Eliminar
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center">No se han registrado compras hoy.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Registrar Compra</h1>
     </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+
+            <!-- Formulario de compra -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Nueva compra — {{ fecha_actual }}</h3>
+                    </div>
+                    <form method="post" id="form-compra">
+                        {% csrf_token %}
+                        <div class="card-body">
+
+                            <div class="form-group">
+                                <label>Observaciones</label>
+                                <textarea name="observaciones" class="form-control" rows="2" placeholder="Opcional"></textarea>
+                            </div>
+
+                            <hr>
+                            <h5>Productos comprados</h5>
+
+                            <div id="filas-productos">
+                                <!-- Fila inicial -->
+                                <div class="fila-producto form-row align-items-center mb-2">
+                                    <div class="col-md-5">
+                                        <select name="producto_id" class="form-control" required>
+                                            <option value="">— Seleccione insumo —</option>
+                                            {% for producto in productos %}
+                                            <option value="{{ producto.id }}">{{ producto.nombre }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" name="cantidad" class="form-control" placeholder="Cantidad" min="1" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" name="precio_unitario" class="form-control" placeholder="Precio Bs." min="0.01" step="0.01" required>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-danger btn-sm btn-eliminar-fila">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" id="btn-agregar-fila" class="btn btn-outline-success btn-sm mt-2">
+                                <i class="fas fa-plus mr-1"></i> Agregar otro producto
+                            </button>
+
+                        </div>
+                        <div class="card-footer d-flex justify-content-between">
+                            <a href="{% url 'usuarios:inicio' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left mr-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save mr-1"></i> Registrar compra
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Compras del dia -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Compras de hoy</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        {% for compra in compras_recientes %}
+                        <div class="p-2 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Compra #{{ compra.id }}</strong>
+                                    <small class="text-muted d-block">{{ compra.personal.username }}</small>
+                                    {% for detalle in compra.detalles.all %}
+                                    <small class="d-block">{{ detalle.cantidad_botellas }} x {{ detalle.producto.nombre }} — Bs. {{ detalle.precio_unitario }}</small>
+                                    {% endfor %}
+                                </div>
+                                <div class="text-right">
+                                    <strong>Bs. {{ compra.total }}</strong>
+                                    <form method="post" action="{% url 'compras:eliminar_compra' compra.id %}" class="d-block mt-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-xs"
+                                            onclick="return confirm('¿Eliminar esta compra y revertir el stock?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-center text-muted p-3">No hay compras registradas hoy.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<script>
+// Template de fila de producto
+const productosOptions = `{% for producto in productos %}<option value="{{ producto.id }}">{{ producto.nombre }}</option>{% endfor %}`;
+
+document.getElementById('btn-agregar-fila').addEventListener('click', function() {
+    const contenedor = document.getElementById('filas-productos');
+    const fila = document.createElement('div');
+    fila.className = 'fila-producto form-row align-items-center mb-2';
+    fila.innerHTML = `
+        <div class="col-md-5">
+            <select name="producto_id" class="form-control" required>
+                <option value="">— Seleccione insumo —</option>
+                ${productosOptions}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <input type="number" name="cantidad" class="form-control" placeholder="Cantidad" min="1" required>
+        </div>
+        <div class="col-md-3">
+            <input type="number" name="precio_unitario" class="form-control" placeholder="Precio Bs." min="0.01" step="0.01" required>
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-danger btn-sm btn-eliminar-fila">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    contenedor.appendChild(fila);
+});
+
+// Eliminar fila
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.btn-eliminar-fila')) {
+        const filas = document.querySelectorAll('.fila-producto');
+        if (filas.length > 1) {
+            e.target.closest('.fila-producto').remove();
+        }
+    }
+});
+</script>
+
 {% endblock %}

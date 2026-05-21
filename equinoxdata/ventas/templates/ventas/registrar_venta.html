@@ -1,225 +1,185 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<div class="container mt-5">
-    <!-- Título principal -->
-    <h1 class="text-center mb-4">Registrar Venta</h1>
 
-    {% if sesion_activa %}
-    <!-- Información de la sesión activa -->
-    <div class="alert alert-info text-center">
-        <h4>Sesión Activa: {{ sesion_activa.usuario_encargado.username }}</h4>
-    </div>
-
-    <!-- Formulario de registro de venta -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" class="btn btn-primary btn-block">Registrar Venta</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Total acumulado -->
-    <div class="alert alert-success text-center">
-        <h5>Total acumulado de ventas: <strong>${{ total_acumulado|default:0 }}</strong></h5>
-    </div>
-
-    <!-- Resumen de ventas -->
-    <h3 class="text-center mt-4">Resumen de Ventas de la Sesión</h3>
-    <table class="table table-striped mt-3">
-        <thead class="thead-dark">
-            <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for comanda in ventas_resumen %}
-            <tr>
-                <td>{{ comanda.producto.nombre }}</td>
-                <td>{{ comanda.cantidad }}</td>
-                <td>${{ comanda.producto.precio }}</td>
-                <td>${{ comanda.total }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <!-- Mensaje cuando no hay sesión activa -->
-    <div class="alert alert-warning text-center">
-        <p>No hay sesión activa.</p>
-    </div>
-    {% endif %}
-
-    <!-- Botón de regreso -->
-    <div class="text-center mt-4">
-        <a href="{% url 'ventas:sesiones_activas' %}" class="btn btn-secondary">Volver a la lista de sesiones activas</a>
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Registrar Venta</h1>
     </div>
 </div>
-{% endblock %}
 
-    {% comment %} {% extends 'base.html' %}
-    
-    {% block content %}
-      <h1>Registrar Venta</h1>
-    
-      {% if sesion_activa %}
-        <h2>Sesión Activa: {{ sesion_activa.usuario_encargado.username }}</h2>
-        <form method="post">
-          {% csrf_token %}
-          {{ form.as_p }}
-    
-          <!-- Desplegable con Select2 para seleccionar producto -->
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-12">
-                <div class="form-group">
-                  <div class="row">
-                    <label class="col-6" for="id_producto">Producto</label>
-                    <select class="form-control select2 col-6" style="width: 100%;" id="id_producto" name="producto">
-                      <option value="" selected disabled>Seleccione un producto</option>
-                      {% for producto in productos %}
-                        <option value="{{ producto.id }}">{{ producto.nombre }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
+<section class="content">
+    <div class="container-fluid">
+
+        {% if sesion_activa %}
+        <div class="row">
+
+            <!-- Panel izquierdo: formulario y productos rapidos -->
+            <div class="col-md-7">
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Sesion activa de <strong>{{ sesion_activa.usuario_encargado.username }}</strong>
+                    {% if sesion_activa.evento %}— Evento: <strong>{{ sesion_activa.evento.nombre }}</strong>{% endif %}
                 </div>
-              </div>
+
+                <!-- Botones rapidos por tipo -->
+                {% regroup productos by get_tipo_display as productos_por_tipo %}
+                {% for grupo in productos_por_tipo %}
+                <div class="card mb-2">
+                    <div class="card-header py-2">
+                        <h6 class="mb-0">{{ grupo.grouper }}</h6>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            {% for producto in grupo.list %}
+                            <div class="col-md-4 mb-2">
+                                <button type="button"
+                                    class="btn btn-outline-primary btn-block btn-producto"
+                                    data-id="{{ producto.id }}"
+                                    data-nombre="{{ producto.nombre }}"
+                                    data-precio="{{ producto.precio }}">
+                                    {{ producto.nombre }}<br>
+                                    <small>Bs. {{ producto.precio }}</small>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Formulario de comanda -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Registrar comanda</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" id="form-comanda">
+                            {% csrf_token %}
+                            <div class="form-row align-items-end">
+                                <div class="form-group col-md-5">
+                                    <label>Producto</label>
+                                    <select name="producto" id="id_producto" class="form-control" required>
+                                        <option value="">— Seleccione —</option>
+                                        {% for producto in productos %}
+                                        <option value="{{ producto.id }}" data-precio="{{ producto.precio }}">
+                                            {{ producto.nombre }} — Bs. {{ producto.precio }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>Cantidad</label>
+                                    <input type="number" name="cantidad" id="id_cantidad" class="form-control" value="1" min="1" required>
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label>Total</label>
+                                    <input type="text" id="id_total_preview" class="form-control" readonly placeholder="Bs. 0">
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <button type="submit" class="btn btn-primary btn-block">
+                                        <i class="fas fa-plus"></i> Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-    
-            <!-- Botones de productos populares -->
-            <div class="row mt-3">
-              <div class="col">
-                <div class="d-grid gap-2">
-                  <button class="btn btn-primary btn-block" type="button" id="boton_tren_al_sur">Tren al sur</button>
+
+            <!-- Panel derecho: resumen de comandas -->
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Comandas de la sesion</h3>
+                        <span class="badge badge-success">Bs. {{ total_acumulado }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comanda in ventas_resumen %}
+                                <tr>
+                                    <td>{{ comanda.producto.nombre }}</td>
+                                    <td class="text-center">{{ comanda.cantidad }}</td>
+                                    <td class="text-right">Bs. {{ comanda.total }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">Sin comandas aun.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if ventas_resumen %}
+                            <tfoot>
+                                <tr class="table-success">
+                                    <th colspan="2">Total sesion</th>
+                                    <th class="text-right">Bs. {{ total_acumulado }}</th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'ventas:sesiones_activas' %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left mr-1"></i> Volver a sesiones
+                        </a>
+                        <a href="{% url 'ventas:cerrar_sesion' sesion_activa.id %}" class="btn btn-warning btn-sm ml-2">
+                            <i class="fas fa-stop mr-1"></i> Cerrar sesion
+                        </a>
+                    </div>
                 </div>
-              </div>
-              <div class="col">
-                <div class="d-grid gap-2">
-                  <button class="btn btn-primary btn-block" type="button" id="boton_huari">Huari</button>
-                </div>
-              </div>
-              <div class="col">
-                <div class="d-grid gap-2">
-                  <button class="btn btn-primary btn-block" type="button" id="boton_rompebolas">La Rompebolas</button>
-                </div>
-              </div>
-              <div class="col">
-                <div class="d-grid gap-2">
-                  <button class="btn btn-primary btn-block" type="button" id="boton_jack_daniels">Jack Daniels</button>
-                </div>
-              </div>
             </div>
-    
-            <!-- Sección de cantidad y precio -->
-            <div class="row mt-3">
-              <div class="col-2">
-                <label for="cantidad" class="form-label">Cantidad</label>
-              </div>
-              <div class="col">
-                <input type="number" class="form-control" id="cantidad" name="cantidad" placeholder="Cantidad">
-              </div>
-              <div class="col">
-                <input class="form-control" type="text" id="precio" name="precio" placeholder="Precio" disabled>
-              </div>
-            </div>
-          </div>
-    
-          <button type="submit" class="btn btn-primary mt-3">Registrar Venta</button>
-        </form>
-    
-        <h3>Total acumulado de ventas: {{ total_acumulado|default:0 }}</h3>
-    
-        <h3>Resumen de Ventas de la Sesión</h3>
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Cantidad</th>
-              <th>Precio</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for comanda in ventas_resumen %}
-              <tr>
-                <td>{{ comanda.producto.nombre_presentacion }}</td>
-                <td>{{ comanda.cantidad }}</td>
-                <td>{{ comanda.producto.precio }}</td>
-                <td>{{ comanda.total }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-    
-      {% else %}
-        <p>No hay sesión activa.</p>
-      {% endif %}
-    
-      <a href="{% url 'ventas:sesiones_activas' %}">Volver a la lista de sesiones activas</a>
-    
-    {% endblock %}
-    
-    <!-- Importar Select2 -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-    
-    <script>
-      // Activar Select2 en el desplegable
-      $(document).ready(function() {
-        $('#id_producto').select2();
-    
-        // Configurar los botones para agregar productos populares
-        $('#boton_tren_al_sur').click(function() {
-          $('#id_producto').val('tren_al_sur').trigger('change');
-        });
-        $('#boton_huari').click(function() {
-          $('#id_producto').val('huari').trigger('change');
-        });
-        $('#boton_rompebolas').click(function() {
-          $('#id_producto').val('rompebolas').trigger('change');
-        });
-        $('#boton_jack_daniels').click(function() {
-          $('#id_producto').val('jack_daniels').trigger('change');
-        });
-    
-        // Actualizar el precio cuando se seleccione un producto
-        $('#id_producto').change(function() {
-          var productoSeleccionado = $(this).val();
-          var precio = 0;
-    
-          switch (productoSeleccionado) {
-            case 'huari':
-              precio = 80.00;
-              break;
-            case 'jack_daniels':
-              precio = 120.00;
-              break;
-            case 'jonny_walker':
-              precio = 150.00;
-              break;
-            case 'tren_al_sur':
-              precio = 100.00;
-              break;
-            case 'rompebolas':
-              precio = 90.00;
-              break;
-            case 'jagermeister':
-              precio = 110.00;
-              break;
-            case 'splash':
-              precio = 50.00;
-              break;
-          }
-    
-          $('#precio').val(precio.toFixed(2));
-        });
-      });
-    </script>
-    
-     {% endcomment %}
+
+        </div>
+
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle mr-1"></i>
+            No tiene una sesion de trabajo activa.
+            <a href="{% url 'ventas:iniciar_sesion' %}" class="btn btn-primary btn-sm ml-3">
+                <i class="fas fa-play mr-1"></i> Iniciar sesion
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
+<script>
+// Precio dinamico al seleccionar producto
+const selectProducto = document.getElementById('id_producto');
+const inputCantidad = document.getElementById('id_cantidad');
+const inputTotal = document.getElementById('id_total_preview');
+
+function actualizarTotal() {
+    const opcion = selectProducto.options[selectProducto.selectedIndex];
+    const precio = parseFloat(opcion?.dataset.precio || 0);
+    const cantidad = parseInt(inputCantidad?.value || 1);
+    inputTotal.value = 'Bs. ' + (precio * cantidad).toFixed(2);
+}
+
+if (selectProducto) {
+    selectProducto.addEventListener('change', actualizarTotal);
+    inputCantidad.addEventListener('input', actualizarTotal);
+}
+
+// Botones rapidos de producto
+document.querySelectorAll('.btn-producto').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const precio = this.dataset.precio;
+        selectProducto.value = id;
+        actualizarTotal();
+        inputCantidad.focus();
+    });
+});
+</script>
+
+{% endblock %}
