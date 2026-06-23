@@ -7,8 +7,10 @@ urlpatterns = [
     path('entrada/', views.recibir_y_obtener_recomendacion, name='entrada'),
     path('resultados/', views.mostrar_resultados, name='resultados'),
     path('evaluar-casos/', views.evaluar_casos_similares_view, name='evaluar_casos'),
-    path('buscar-casos/', views.buscar_casos_similares, name='buscar_casos'),
+    path('buscar-casos/', views.buscar_casos_similares_view, name='buscar_casos'),
     path('consultar-casos/', views.consultar_casos, name='consultar_casos'),
     path('generar-casos/', views.generar_casos_historicos, name='generar_casos_historicos'),
     path('recomendacion/', views.generar_recomendacion, name='generar_recomendacion'),
+    path('crear-caso/<int:consolidacion_id>/', views.crear_caso_historico, name='crear_caso'),
+    
 ]

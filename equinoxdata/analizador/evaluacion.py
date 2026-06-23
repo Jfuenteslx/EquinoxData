@@ -1,61 +1,221 @@
+from datetime import date
 from .models import CasoHistorico
+from inventarios.models import Inventario
 
 
-def umbral_similitud(evento, tipo_evento, show_presentado, genero_musical, caso_historico):
+# ------------------------------------------------------------------
+# Pesos para el cálculo de similitud entre casos (CBR)
+# ------------------------------------------------------------------
+PESOS_SIMILITUD = {
+    'banda':          0.30,
+    'tipo_evento':    0.20,
+    'genero_musical': 0.20,
+    'promociones':    0.15,
+    'aforo':          0.10,
+    'proximidad':     0.05,
+}
+
+UMBRAL_MINIMO = 0.40   # Similitud mínima para considerar un caso
+MAX_CASOS = 10          # Máximo de casos similares a recuperar
+
+
+def similitud_texto(a, b):
+    """Similitud binaria entre dos strings."""
+    if not a or not b:
+        return 0
+    return 1 if str(a).strip().lower() == str(b).strip().lower() else 0
+
+
+def similitud_numerica(val_nuevo, val_historico, rango_max):
+    """Similitud numérica normalizada. Más cercanos = más similares."""
+    if rango_max == 0:
+        return 1
+    diff = abs(val_nuevo - val_historico)
+    return max(0, 1 - diff / rango_max)
+
+
+def similitud_temporal(fecha_evento_historico):
     """
-    Calcula la similitud entre un caso actual y un caso histórico.
+    Penaliza casos más antiguos.
+    - Último año: 1.0
+    - Cada año adicional: -0.15
+    - Mínimo: 0.40 (eventos de más de 4 años)
     """
-    peso_evento = 0.3  # Ponderación para la variable 'evento'
-    peso_tipo_evento = 0.3  # Ponderación para 'tipo_evento'
-    peso_show = 0.2  # Ponderación para 'show_presentado'
-    peso_genero = 0.2  # Ponderación para 'genero_musical'
+    if not fecha_evento_historico:
+        return 0.40
+    hoy = date.today()
+    anos_diferencia = (hoy - fecha_evento_historico).days / 365.0
+    factor = max(0.40, 1.0 - (anos_diferencia * 0.15))
+    return round(factor, 4)
 
-    # Variables binarias: iguales o no
-    similitud_evento = 1 if evento == caso_historico.evento else 0
-    similitud_tipo_evento = 1 if tipo_evento == caso_historico.tipo_evento else 0
-    similitud_show = 1 if show_presentado == caso_historico.show_presentado else 0
-    similitud_genero = 1 if genero_musical == caso_historico.genero_musical else 0
 
-    # Calcula el puntaje total de similitud
-    puntaje_similitud = (
-        (similitud_evento * peso_evento)
-        + (similitud_tipo_evento * peso_tipo_evento)
-        + (similitud_show * peso_show)
-        + (similitud_genero * peso_genero)
+def calcular_similitud(parametros_nuevo, caso_historico):
+    """
+    Calcula la similitud ponderada entre un caso nuevo y un caso histórico.
+
+    Args:
+        parametros_nuevo: dict con banda, tipo_evento, genero_musical,
+                          promociones, aforo_esperado
+        caso_historico: instancia de CasoHistorico
+
+    Returns:
+        float: puntaje de similitud entre 0 y 1
+    """
+    # Banda/grupo — mayor predictor
+    banda_nuevo = parametros_nuevo.get('banda', '')
+    banda_historico = ''
+    if caso_historico.evento and hasattr(caso_historico.evento, 'banda'):
+        banda_historico = caso_historico.evento.banda or ''
+    sim_banda = similitud_texto(banda_nuevo, banda_historico)
+
+    # Tipo de evento
+    sim_tipo = similitud_texto(
+        parametros_nuevo.get('tipo_evento'),
+        caso_historico.tipo_evento
     )
 
-    return puntaje_similitud
+    # Género musical
+    sim_genero = similitud_texto(
+        parametros_nuevo.get('genero_musical'),
+        caso_historico.genero_musical
+    )
+
+    # Promociones
+    sim_promo = similitud_texto(
+        parametros_nuevo.get('promociones'),
+        caso_historico.promociones
+    )
+
+    # Aforo
+    sim_aforo = similitud_numerica(
+        parametros_nuevo.get('aforo_esperado', 0),
+        caso_historico.aforo_esperado,
+        rango_max=300
+    )
+
+    # Proximidad temporal
+    fecha_hist = None
+    if caso_historico.evento:
+        fecha_hist = caso_historico.evento.fecha
+    sim_temporal = similitud_temporal(fecha_hist)
+
+    puntaje = (
+        sim_banda   * PESOS_SIMILITUD['banda'] +
+        sim_tipo    * PESOS_SIMILITUD['tipo_evento'] +
+        sim_genero  * PESOS_SIMILITUD['genero_musical'] +
+        sim_promo   * PESOS_SIMILITUD['promociones'] +
+        sim_aforo   * PESOS_SIMILITUD['aforo'] +
+        sim_temporal * PESOS_SIMILITUD['proximidad']
+    )
+    return round(puntaje, 4)
 
 
-# Evaluar la similitud entre un caso nuevo y casos históricos
-def evaluar_casos_similares(evento, tipo_evento, show_presentado, genero_musical, casos_historicos):
+def buscar_casos_similares(parametros_nuevo):
     """
-    Busca casos históricos similares al caso actual basado en variables no difusas.
+    Recupera los casos históricos más similares al caso nuevo.
+
+    Returns:
+        list: lista de tuplas (caso_historico, puntaje_similitud)
+              ordenada por similitud descendente
     """
-    umbral_minimo = 0.7  # Define un valor mínimo aceptable de similitud (escala de 0 a 1)
-    casos_similares = []
+    todos_los_casos = CasoHistorico.objects.select_related('evento').all()
+    casos_con_puntaje = []
 
-    for caso in casos_historicos:
-        # Calcula la similitud con el caso histórico
-        puntaje_similitud = umbral_similitud(evento, tipo_evento, show_presentado, genero_musical, caso)
-        
-        if puntaje_similitud >= umbral_minimo:  # Si supera el umbral, es un caso similar
-            casos_similares.append(caso)
-    
-    return casos_similares
+    for caso in todos_los_casos:
+        puntaje = calcular_similitud(parametros_nuevo, caso)
+        if puntaje >= UMBRAL_MINIMO:
+            casos_con_puntaje.append((caso, puntaje))
 
-# Función para calcular la similitud entre el caso actual y un caso histórico
-def calcular_similitud(aforo, ventas, consumo, caso):
-    # Aquí se implementa el cálculo de similitud
-    similitud = 0
-    # Ejemplo simple de similitud
-    similitud += abs(aforo - caso.aforo)
-    similitud += abs(ventas - caso.ventas)
-    similitud += abs(consumo - caso.consumo)
-    return similitud
+    casos_con_puntaje.sort(key=lambda x: x[1], reverse=True)
+    return casos_con_puntaje[:MAX_CASOS]
 
-# Generar recomendación de compra basada en los casos similares encontrados
-def generar_recomendacion_compra(casos_similares):
-    recomendacion = "Basado en los casos similares, recomendamos una compra de..."
-    # Lógica para generar la recomendación a partir de los casos similares
-    return recomendacion
+
+def calcular_performance_promedio(casos_similares):
+    """
+    Calcula el performance promedio ponderado de los casos similares.
+    El performance es ventas_reales / ventas_esperadas * 100.
+
+    Returns:
+        float o None
+    """
+    if not casos_similares:
+        return None
+
+    suma_ponderada = 0
+    suma_pesos = 0
+
+    for caso, puntaje in casos_similares:
+        if caso.performance > 0:
+            suma_ponderada += caso.performance * puntaje
+            suma_pesos += puntaje
+
+    if suma_pesos == 0:
+        return None
+
+    return round(suma_ponderada / suma_pesos, 2)
+
+
+def generar_recomendacion_compra(coeficiente, casos_similares):
+    """
+    Genera la recomendación de compra basada en el coeficiente difuso
+    y el inventario actual.
+
+    Args:
+        coeficiente: float entre 0 y 100
+        casos_similares: lista de tuplas (caso_historico, puntaje)
+
+    Returns:
+        list: lista de dicts con recomendación por producto
+    """
+    factor = coeficiente / 100.0
+    inventarios = Inventario.objects.select_related('producto').all()
+    recomendaciones = []
+
+    # Consumo histórico promedio por producto
+    consumo_por_producto = {}
+    if casos_similares:
+        for caso, puntaje in casos_similares:
+            resumen = caso.resumen_ventas or {}
+            for nombre_prod, datos in resumen.items():
+                if nombre_prod not in consumo_por_producto:
+                    consumo_por_producto[nombre_prod] = []
+                consumo_por_producto[nombre_prod].append(
+                    datos.get('cantidad_total', 0)
+                )
+
+    consumo_promedio = {
+        nombre: sum(vals) / len(vals)
+        for nombre, vals in consumo_por_producto.items()
+        if vals
+    }
+
+    for inv in inventarios:
+        producto = inv.producto
+        stock_actual_botellas = inv.botellas
+        stock_actual_medidas = float(inv.medidas_sueltas)
+
+        consumo_hist = consumo_promedio.get(producto.nombre, 0)
+
+        if producto.medidas_por_unidad > 0 and consumo_hist > 0:
+            medidas_necesarias = consumo_hist * factor
+            botellas_necesarias = medidas_necesarias / producto.medidas_por_unidad
+        else:
+            botellas_necesarias = max(2, round(stock_actual_botellas * factor))
+
+        botellas_a_comprar = max(0, round(botellas_necesarias - stock_actual_botellas))
+
+        recomendaciones.append({
+            'producto': producto.nombre,
+            'unidad': producto.get_unidad_medida_display(),
+            'stock_actual_botellas': stock_actual_botellas,
+            'stock_actual_medidas': stock_actual_medidas,
+            'consumo_historico_promedio': round(consumo_hist, 1),
+            'proyeccion_necesaria': round(botellas_necesarias, 1),
+            'botellas_a_comprar': botellas_a_comprar,
+            'costo_estimado': round(
+                botellas_a_comprar * float(producto.precio_costo), 2
+            ),
+        })
+
+    recomendaciones.sort(key=lambda x: x['botellas_a_comprar'], reverse=True)
+    return recomendaciones

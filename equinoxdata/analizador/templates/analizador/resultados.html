@@ -1,79 +1,221 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<div class="container mt-5">
-    <h1 class="text-center mb-4">Resultados</h1>
 
-    <!-- Recomendación -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2 class="card-title">Recomendación de Productos</h2>
-            <p class="card-text">
-                El coeficiente de reabastecimiento es de 
-                <strong class="text-success">{{ recomendacion }}</strong>%.
-            </p>
-        </div>
-    </div>
-
-    <!-- Resumen de Parámetros -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2 class="card-title">Resumen de los Parámetros Ingresados</h2>
-            <p><strong>Aforo:</strong> {{ resumen.aforo }}</p>
-            <p><strong>Ventas:</strong> {{ resumen.ventas }}</p>
-            <p><strong>Consumo:</strong> {{ resumen.consumo }}</p>
-        </div>
-    </div>
-
-    <!-- Último Registro de Inventario -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2 class="card-title">Último Registro de Inventario</h2>
-            {% if ultimo_registro == "No hay registros en la tabla." %}
-                <p class="text-muted">{{ ultimo_registro }}</p>
-            {% else %}
-                <p><strong>Fecha:</strong> {{ ultimo_registro.fecha }}</p>
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Cantidad</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for producto, cantidad in ultimo_registro.inventario_json.items %}
-                            <tr>
-                                <td>{{ producto }}</td>
-                                <td>{{ cantidad }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Búsqueda de Casos Similares -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2 class="card-title">Búsqueda de Casos Similares</h2>
-            <form method="POST" action="{% url 'analizador:buscar_casos' %}">
-                {% csrf_token %}
-                {{ busqueda_form.as_p }}
-                <button type="submit" class="btn btn-primary mt-3">
-                    <i class="fas fa-search"></i> Buscar Casos Similares
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Botón de Volver -->
-    <div class="text-center">
-        <a href="{% url 'analizador:entrada' %}" class="btn btn-secondary mt-4">
-            <i class="fas fa-arrow-left"></i> Volver
-        </a>
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Resultados del Analisis</h1>
     </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        <!-- Resumen del evento -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            {{ resumen.evento.nombre }} — {{ resumen.evento.fecha }}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <p class="text-muted mb-1">Aforo esperado</p>
+                                <h4>{{ resumen.aforo }} personas</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <p class="text-muted mb-1">Ventas esperadas</p>
+                                <h4>Bs. {{ resumen.ventas }}</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <p class="text-muted mb-1">Consumo por persona</p>
+                                <h4>Bs. {{ resumen.consumo }}</h4>
+                            </div>
+                            <div class="col-md-3">
+                                <p class="text-muted mb-1">Casos similares encontrados</p>
+                                <h4>{{ total_casos }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coeficiente y performance -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-pie mr-2"></i>Coeficiente de reabastecimiento
+                        </h3>
+                    </div>
+                    <div class="card-body text-center">
+                        <div style="font-size: 3rem; font-weight: bold;
+                            color: {% if coeficiente >= 70 %}#28a745{% elif coeficiente >= 40 %}#ffc107{% else %}#dc3545{% endif %};">
+                            {{ coeficiente }}%
+                        </div>
+                        <p class="text-muted mt-2">
+                            {% if coeficiente >= 70 %}
+                            Evento de alta demanda — se recomienda stock completo.
+                            {% elif coeficiente >= 40 %}
+                            Evento de demanda moderada — stock parcial suficiente.
+                            {% else %}
+                            Evento de baja demanda — stock minimo recomendado.
+                            {% endif %}
+                        </p>
+                        <div class="progress mt-2">
+                            <div class="progress-bar
+                                {% if coeficiente >= 70 %}bg-success{% elif coeficiente >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                style="width: {{ coeficiente }}%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-history mr-2"></i>Performance historico promedio
+                        </h3>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if performance %}
+                        <div style="font-size: 3rem; font-weight: bold;
+                            color: {% if performance >= 80 %}#28a745{% elif performance >= 50 %}#ffc107{% else %}#dc3545{% endif %};">
+                            {{ performance }}%
+                        </div>
+                        <p class="text-muted mt-2">
+                            Rendimiento promedio ponderado de los {{ total_casos }} casos similares encontrados.
+                        </p>
+                        {% else %}
+                        <p class="text-muted mt-4">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            No hay casos historicos suficientes para calcular el performance.
+                            El coeficiente se basa unicamente en la logica difusa.
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Casos similares -->
+        {% if casos_similares %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-search mr-2"></i>Casos similares encontrados
+                </h3>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>Evento</th>
+                            <th>Banda</th>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Genero</th>
+                            <th class="text-center">Performance</th>
+                            <th class="text-center">Coeficiente</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for caso in casos_similares %}
+                        <tr>
+                            <td>{{ caso.evento.nombre }}</td>
+                            <td>{{ caso.evento.banda|default:"—" }}</td>
+                            <td>{{ caso.evento.fecha }}</td>
+                            <td>{{ caso.tipo_evento }}</td>
+                            <td>{{ caso.genero_musical|default:"—" }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if caso.performance >= 70 %}badge-success{% elif caso.performance >= 40 %}badge-warning{% else %}badge-danger{% endif %}">
+                                    {{ caso.performance }}%
+                                </span>
+                            </td>
+                            <td class="text-center">{{ caso.coeficiente }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recomendacion de compra -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title">
+                    <i class="fas fa-shopping-cart mr-2"></i>Recomendacion de compra
+                </h3>
+                <span class="badge badge-primary">Costo estimado total: Bs. {{ costo_total }}</span>
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Insumo</th>
+                            <th class="text-center">Stock actual (bot.)</th>
+                            <th class="text-center">Stock actual (med.)</th>
+                            <th class="text-center">Consumo hist. prom.</th>
+                            <th class="text-center">Proyeccion necesaria</th>
+                            <th class="text-center">Comprar (botellas)</th>
+                            <th class="text-right">Costo estimado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in recomendacion %}
+                        <tr {% if item.botellas_a_comprar > 0 %}class="table-warning"{% endif %}>
+                            <td><strong>{{ item.producto }}</strong></td>
+                            <td class="text-center">{{ item.stock_actual_botellas }}</td>
+                            <td class="text-center">{{ item.stock_actual_medidas }}</td>
+                            <td class="text-center">{{ item.consumo_historico_promedio }}</td>
+                            <td class="text-center">{{ item.proyeccion_necesaria }}</td>
+                            <td class="text-center">
+                                {% if item.botellas_a_comprar > 0 %}
+                                <span class="badge badge-warning">{{ item.botellas_a_comprar }}</span>
+                                {% else %}
+                                <span class="badge badge-success">Stock ok</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">
+                                {% if item.costo_estimado > 0 %}
+                                Bs. {{ item.costo_estimado }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">No hay insumos en inventario.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <th colspan="6" class="text-right">Costo total estimado:</th>
+                            <th class="text-right">Bs. {{ costo_total }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'analizador:entrada' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i> Nuevo analisis
+                </a>
+                <a href="{% url 'analizador:consultar_casos' %}" class="btn btn-info ml-2">
+                    <i class="fas fa-history mr-1"></i> Ver casos historicos
+                </a>
+            </div>
+        </div>
+
+    </div>
+</section>
+
 {% endblock %}

@@ -1,135 +1,116 @@
-# inferencia.py
-
-from django.shortcuts import render
-from .forms import ParametrosForm  # Formulario que crearemos para recibir los datos
-from .models import Parametro
 import numpy as np
 import skfuzzy as fuzz
 
+
+# ------------------------------------------------------------------
+# Funciones de membresía para Aforo (0 - 300 personas)
+# ------------------------------------------------------------------
+
 def aforo_bajo(aforo):
-    aforo = np.array([aforo])
-    resultado = fuzz.trapmf(aforo, [0, 0, 50, 150])[0]
-    print(f"aforo_bajo({aforo}): {resultado}")
-    return resultado
+    return fuzz.trapmf(np.array([aforo]), [0, 0, 50, 150])[0]
 
 def aforo_medio(aforo):
-    aforo = np.array([aforo])
-    resultado = fuzz.trimf(aforo, [50, 150, 250])[0]
-    print(f"aforo_medio({aforo}): {resultado}")
-    return resultado
+    return fuzz.trimf(np.array([aforo]), [50, 150, 250])[0]
 
 def aforo_alto(aforo):
-    aforo = np.array([aforo])
-    resultado = fuzz.trapmf(aforo, [150, 250, 300, 300])[0]
-    print(f"aforo_alto({aforo}): {resultado}")
-    return resultado
+    return fuzz.trapmf(np.array([aforo]), [150, 250, 300, 300])[0]
 
-# Funciones de membresía para Ventas
+
+# ------------------------------------------------------------------
+# Funciones de membresía para Ventas esperadas (2000 - 20000 Bs)
+# ------------------------------------------------------------------
+
 def ventas_bajo(ventas):
-    ventas = np.array([ventas])
-    resultado = fuzz.trapmf(ventas, [2000, 2000, 7000, 10000])[0]
-    print(f"ventas_bajo({ventas}): {resultado}")
-    return resultado
+    return fuzz.trapmf(np.array([ventas]), [2000, 2000, 7000, 10000])[0]
 
 def ventas_medio(ventas):
-    ventas = np.array([ventas])
-    resultado = fuzz.trimf(ventas, [7000, 12000, 15000])[0]
-    print(f"ventas_medio({ventas}): {resultado}")
-    return resultado
+    return fuzz.trimf(np.array([ventas]), [7000, 12000, 15000])[0]
 
 def ventas_alto(ventas):
-    ventas = np.array([ventas])
-    resultado = fuzz.trapmf(ventas, [12000, 15000, 20000, 20000])[0]
-    print(f"ventas_alto({ventas}): {resultado}")
-    return resultado
+    return fuzz.trapmf(np.array([ventas]), [12000, 15000, 20000, 20000])[0]
 
-# Funciones de membresía para Consumo
+
+# ------------------------------------------------------------------
+# Funciones de membresía para Consumo per cápita (30 - 200 Bs/persona)
+# ------------------------------------------------------------------
+
 def consumo_bajo(consumo):
-    consumo = np.array([consumo])
-    resultado = fuzz.trapmf(consumo, [30, 30, 70, 100])[0]
-    print(f"consumo_bajo({consumo}): {resultado}")
-    return resultado
+    return fuzz.trapmf(np.array([consumo]), [30, 30, 70, 100])[0]
 
 def consumo_medio(consumo):
-    consumo = np.array([consumo])
-    resultado = fuzz.trimf(consumo, [70, 100, 150])[0]
-    print(f"consumo_medio({consumo}): {resultado}")
-    return resultado
+    return fuzz.trimf(np.array([consumo]), [70, 100, 150])[0]
 
 def consumo_alto(consumo):
-    consumo = np.array([consumo])
-    resultado = fuzz.trapmf(consumo, [100, 150, 200, 200])[0]
-    print(f"consumo_alto({consumo}): {resultado}")
-    return resultado
+    return fuzz.trapmf(np.array([consumo]), [100, 150, 200, 200])[0]
 
-# Función de inferencia
+
+# ------------------------------------------------------------------
+# Motor de inferencia Takagi-Sugeno
+# Retorna el coeficiente de reabastecimiento (0-100%)
+# ------------------------------------------------------------------
+
 def reglas_inferencia(aforo, ventas, consumo):
-    print(f"Calculando con aforo={aforo}, ventas={ventas}, consumo={consumo}")
+    """
+    Calcula el coeficiente de reabastecimiento usando lógica difusa.
     
-    grado_aforo_bajo = aforo_bajo(aforo)
-    grado_aforo_medio = aforo_medio(aforo)
-    grado_aforo_alto = aforo_alto(aforo)
+    El coeficiente representa qué porcentaje del stock máximo estimado
+    debe adquirirse para el evento. Ej: 80% = adquirir el 80% del stock
+    proyectado según los parámetros del evento.
+    
+    Returns:
+        float: Coeficiente entre 0 y 100
+    """
+    # Calcular grados de membresía
+    ga_b = aforo_bajo(aforo)
+    ga_m = aforo_medio(aforo)
+    ga_a = aforo_alto(aforo)
 
-    grado_ventas_bajo = ventas_bajo(ventas)
-    grado_ventas_medio = ventas_medio(ventas)
-    grado_ventas_alto = ventas_alto(ventas)
+    gv_b = ventas_bajo(ventas)
+    gv_m = ventas_medio(ventas)
+    gv_a = ventas_alto(ventas)
 
-    grado_consumo_bajo = consumo_bajo(consumo)
-    grado_consumo_medio = consumo_medio(consumo)
-    grado_consumo_alto = consumo_alto(consumo)
+    gc_b = consumo_bajo(consumo)
+    gc_m = consumo_medio(consumo)
+    gc_a = consumo_alto(consumo)
 
-    # Comprobamos los valores de los grados de membresía
-    print(f"Grados de membresía:")
-    print(f"  Aforo: bajo={grado_aforo_bajo}, medio={grado_aforo_medio}, alto={grado_aforo_alto}")
-    print(f"  Ventas: bajo={grado_ventas_bajo}, medio={grado_ventas_medio}, alto={grado_ventas_alto}")
-    print(f"  Consumo: bajo={grado_consumo_bajo}, medio={grado_consumo_medio}, alto={grado_consumo_alto}")
-
-    # Regla de inferencia (ejemplo, ajustar según necesidades)
+    # 27 reglas: (peso, salida)
+    # La salida es el coeficiente de reabastecimiento para esa combinación
     reglas = [
-        (min(grado_aforo_bajo, grado_ventas_bajo, grado_consumo_bajo), 10),
-        (min(grado_aforo_bajo, grado_ventas_bajo, grado_consumo_medio), 20),
-        (min(grado_aforo_bajo, grado_ventas_bajo, grado_consumo_alto), 30),
-        (min(grado_aforo_bajo, grado_ventas_medio, grado_consumo_bajo), 20),   # Baja Media Baja
-        (min(grado_aforo_bajo, grado_ventas_medio, grado_consumo_medio), 40),  # Baja Media Media
-        (min(grado_aforo_bajo, grado_ventas_medio, grado_consumo_alto), 50),   # Baja Media Alta
-        (min(grado_aforo_bajo, grado_ventas_alto, grado_consumo_bajo), 30),    # Baja Alta Baja
-        (min(grado_aforo_bajo, grado_ventas_alto, grado_consumo_medio), 60),   # Baja Alta Media
-        (min(grado_aforo_bajo, grado_ventas_alto, grado_consumo_alto), 70),    # Baja Alta Alta
-
-        (min(grado_aforo_medio, grado_ventas_bajo, grado_consumo_bajo), 20),   # Media Baja Baja
-        (min(grado_aforo_medio, grado_ventas_bajo, grado_consumo_medio), 40),  # Media Baja Media
-        (min(grado_aforo_medio, grado_ventas_bajo, grado_consumo_alto), 50),   # Media Baja Alta
-        (min(grado_aforo_medio, grado_ventas_medio, grado_consumo_bajo), 30),  # Media Media Baja
-        (min(grado_aforo_medio, grado_ventas_medio, grado_consumo_medio), 60), # Media Media Media
-        (min(grado_aforo_medio, grado_ventas_medio, grado_consumo_alto), 80),  # Media Media Alta
-        (min(grado_aforo_medio, grado_ventas_alto, grado_consumo_bajo), 50),   # Media Alta Baja
-        (min(grado_aforo_medio, grado_ventas_alto, grado_consumo_medio), 90),  # Media Alta Media
-        (min(grado_aforo_medio, grado_ventas_alto, grado_consumo_alto), 100),  # Media Alta Alta
-
-        (min(grado_aforo_alto, grado_ventas_bajo, grado_consumo_bajo), 30),    # Alta Baja Baja
-        (min(grado_aforo_alto, grado_ventas_bajo, grado_consumo_medio), 50),   # Alta Baja Media
-        (min(grado_aforo_alto, grado_ventas_bajo, grado_consumo_alto), 60),    # Alta Baja Alta
-        (min(grado_aforo_alto, grado_ventas_medio, grado_consumo_bajo), 40),   # Alta Media Baja
-        (min(grado_aforo_alto, grado_ventas_medio, grado_consumo_medio), 70),  # Alta Media Media
-        (min(grado_aforo_alto, grado_ventas_medio, grado_consumo_alto), 90),   # Alta Media Alta
-        (min(grado_aforo_alto, grado_ventas_alto, grado_consumo_bajo), 50),    # Alta Alta Baja
-        (min(grado_aforo_alto, grado_ventas_alto, grado_consumo_medio), 80),   # Alta Alta Media
-        (min(grado_aforo_alto, grado_ventas_alto, grado_consumo_alto), 100),   # Alta Alta Alta
+        # Aforo BAJO
+        (min(ga_b, gv_b, gc_b), 10),
+        (min(ga_b, gv_b, gc_m), 20),
+        (min(ga_b, gv_b, gc_a), 30),
+        (min(ga_b, gv_m, gc_b), 20),
+        (min(ga_b, gv_m, gc_m), 40),
+        (min(ga_b, gv_m, gc_a), 50),
+        (min(ga_b, gv_a, gc_b), 30),
+        (min(ga_b, gv_a, gc_m), 60),
+        (min(ga_b, gv_a, gc_a), 70),
+        # Aforo MEDIO
+        (min(ga_m, gv_b, gc_b), 20),
+        (min(ga_m, gv_b, gc_m), 40),
+        (min(ga_m, gv_b, gc_a), 50),
+        (min(ga_m, gv_m, gc_b), 30),
+        (min(ga_m, gv_m, gc_m), 60),
+        (min(ga_m, gv_m, gc_a), 80),
+        (min(ga_m, gv_a, gc_b), 50),
+        (min(ga_m, gv_a, gc_m), 90),
+        (min(ga_m, gv_a, gc_a), 100),
+        # Aforo ALTO
+        (min(ga_a, gv_b, gc_b), 30),
+        (min(ga_a, gv_b, gc_m), 50),
+        (min(ga_a, gv_b, gc_a), 60),
+        (min(ga_a, gv_m, gc_b), 40),
+        (min(ga_a, gv_m, gc_m), 70),
+        (min(ga_a, gv_m, gc_a), 90),
+        (min(ga_a, gv_a, gc_b), 50),
+        (min(ga_a, gv_a, gc_m), 80),
+        (min(ga_a, gv_a, gc_a), 100),
     ]
-    
 
-    # Comprobamos los valores de las reglas
-    print(f"Reglas aplicadas:")
-    for i, (w, s) in enumerate(reglas):
-        print(f"  Regla {i+1}: peso={w}, salida={s}")
+    peso_total = sum(w for w, s in reglas)
+    if peso_total == 0:
+        return 0.0
 
-    # Cálculo del valor ponderado
-    if sum([w for w, s in reglas]) != 0:
-        salida_total = sum([w * s for w, s in reglas]) / sum([w for w, s in reglas])
-    else:
-        salida_total = 0
-    
-    print(f"Salida total (valor recomendado): {salida_total}")
-    
-    # Asegurarse de que la salida sea un número y no un array
-    return float(salida_total)  # Convertir a número flotante
+    salida = sum(w * s for w, s in reglas) / peso_total
+    return round(float(salida), 2)

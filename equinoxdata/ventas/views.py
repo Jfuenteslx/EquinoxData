@@ -23,12 +23,24 @@ def iniciar_sesion(request):
         messages.warning(request, 'Ya tiene una sesion de trabajo activa.')
         return redirect('ventas:sesiones_activas')
 
-    SesionDeTrabajo.objects.create(
-        usuario_encargado=request.user,
-        estado='abierta'
-    )
-    messages.success(request, 'Sesion de trabajo iniciada correctamente.')
-    return redirect('ventas:sesiones_activas')
+    if request.method == 'POST':
+        from eventos.models import Evento
+        evento_id = request.POST.get('evento_id')
+        evento = None
+        if evento_id:
+            evento = Evento.objects.filter(id=evento_id).first()
+
+        SesionDeTrabajo.objects.create(
+            usuario_encargado=request.user,
+            estado='abierta',
+            evento=evento
+        )
+        messages.success(request, 'Sesion de trabajo iniciada correctamente.')
+        return redirect('ventas:sesiones_activas')
+
+    from eventos.models import Evento
+    eventos = Evento.objects.all().order_by('-fecha')
+    return render(request, 'ventas/iniciar_sesion.html', {'eventos': eventos})
 
 
 @login_required

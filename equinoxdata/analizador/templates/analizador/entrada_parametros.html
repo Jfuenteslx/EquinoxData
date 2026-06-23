@@ -1,32 +1,135 @@
 {% extends 'base.html' %}
-
 {% block content %}
-<div class="container mt-5">
-    <h1 class="text-center mb-4">Obtener Recomendación</h1>
-    
-    <form method="POST" class="needs-validation" novalidate>
-        {% csrf_token %}
-        
-        <div class="row">
-            {% for field in form %}
-                <div class="form-group col-12 col-md-6">
-                    <label for="{{ field.id_for_label }}" class="font-weight-bold">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                        <small class="form-text text-muted">{{ field.help_text }}</small>
-                    {% endif %}
-                    {% for error in field.errors %}
-                        <div class="text-danger">{{ error }}</div>
-                    {% endfor %}
-                </div>
-            {% endfor %}
-        </div>
-        
-        <div class="text-center mt-4">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-check-circle"></i> Obtener Recomendación
-            </button>
-        </div>
-    </form>
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Analizar Evento</h1>
+    </div>
 </div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Parametros del evento</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+
+                            <div class="form-group">
+                                <label>Evento a analizar *</label>
+                                {{ form.evento }}
+                                {% if form.evento.errors %}
+                                <small class="text-danger">{{ form.evento.errors.0 }}</small>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Tipo de evento *</label>
+                                    {{ form.tipo_evento }}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Genero musical</label>
+                                    {{ form.genero_musical }}
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Promociones / Agregados</label>
+                                {{ form.promociones }}
+                            </div>
+
+                            <hr>
+                            <h5>Variables difusas</h5>
+                            <small class="text-muted d-block mb-3">
+                                Estos valores alimentan el motor de inferencia difusa para calcular el coeficiente de reabastecimiento.
+                            </small>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label>Aforo esperado *</label>
+                                    {{ form.aforo }}
+                                    <small class="text-muted">0 — 300 personas</small>
+                                    {% if form.aforo.errors %}
+                                    <small class="text-danger">{{ form.aforo.errors.0 }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label>Ventas esperadas (Bs.) *</label>
+                                    {{ form.ventas }}
+                                    <small class="text-muted">2,000 — 20,000 Bs.</small>
+                                    {% if form.ventas.errors %}
+                                    <small class="text-danger">{{ form.ventas.errors.0 }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label>Consumo por persona (Bs.) *</label>
+                                    {{ form.consumo }}
+                                    <small class="text-muted">30 — 200 Bs./persona</small>
+                                    {% if form.consumo.errors %}
+                                    <small class="text-danger">{{ form.consumo.errors.0 }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                            {% endif %}
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{% url 'usuarios:inicio' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left mr-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-brain mr-1"></i> Obtener recomendacion
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h3 class="card-title">Como funciona</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-sm">El sistema analiza el evento en dos etapas:</p>
+                        <ol class="text-sm pl-3">
+                            <li class="mb-2">
+                                <strong>Logica difusa</strong> — calcula el coeficiente de reabastecimiento usando aforo, ventas esperadas y consumo per capita.
+                            </li>
+                            <li class="mb-2">
+                                <strong>Razonamiento basado en casos</strong> — busca eventos similares en el historial considerando la banda, tipo, genero y proximidad temporal.
+                            </li>
+                            <li>
+                                <strong>Recomendacion</strong> — cruza el coeficiente con el inventario actual y el consumo historico para sugerir cantidades de compra.
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="card card-warning mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">Rangos validos</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><td>Aforo</td><td>0 — 300 personas</td></tr>
+                                <tr><td>Ventas</td><td>2,000 — 20,000 Bs.</td></tr>
+                                <tr><td>Consumo</td><td>30 — 200 Bs./persona</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {% endblock %}

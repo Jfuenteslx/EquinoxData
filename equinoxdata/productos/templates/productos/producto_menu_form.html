@@ -133,17 +133,31 @@
 document.addEventListener('DOMContentLoaded', function() {
     const tipoSelect = document.getElementById('id_tipo');
     const seccionReceta = document.getElementById('seccion-receta');
+    const insumoBase = document.getElementById('id_insumo_base');
+    const medidaVenta = document.getElementById('id_medidas_por_venta');
 
-    function toggleReceta() {
-        if (tipoSelect.value === 'coctel_jarra') {
-            seccionReceta.style.display = 'block';
+    function actualizarFormulario() {
+        const tipo = tipoSelect.value;
+
+        // Mostrar/ocultar receta
+        seccionReceta.style.display = tipo === 'coctel_jarra' ? 'block' : 'none';
+
+        // Insumo base: deshabilitado para extra y coctel_jarra
+        if (tipo === 'extra' || tipo === 'coctel_jarra') {
+            insumoBase.disabled = true;
+            insumoBase.value = '';
         } else {
-            seccionReceta.style.display = 'none';
+            insumoBase.disabled = false;
+        }
+
+        // Medidas por venta: solo para vaso
+        if (medidaVenta) {
+            medidaVenta.closest('.form-group').style.display = tipo === 'vaso' ? 'block' : 'none';
         }
     }
 
-    tipoSelect.addEventListener('change', toggleReceta);
-    toggleReceta();
+    tipoSelect.addEventListener('change', actualizarFormulario);
+    actualizarFormulario();
 });
 </script>
 

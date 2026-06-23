@@ -1,112 +1,129 @@
 from django import forms
-from .models import Evento, Parametro
-from django.utils.timezone import now  # Importación correcta de 'now'
+from eventos.models import Evento
+from django.utils.timezone import now
 
-class ParametrosForm(forms.ModelForm):
+
+TIPO_EVENTO_CHOICES = [
+    ('', '— Seleccione —'),
+    ('Concierto', 'Concierto'),
+    ('Stand up comedy', 'Stand up comedy'),
+    ('Fiesta', 'Fiesta'),
+    ('Evento especial', 'Evento especial'),
+]
+
+GENERO_MUSICAL_CHOICES = [
+    ('', '— Seleccione —'),
+    ('Rock clasico', 'Rock clasico'),
+    ('Rock alternativo', 'Rock alternativo'),
+    ('Punk', 'Punk'),
+    ('Electronica', 'Electronica'),
+    ('Metal', 'Metal'),
+    ('Pop Rock', 'Pop Rock'),
+    ('Rap', 'Rap'),
+    ('Rock Latino', 'Rock Latino'),
+    ('Ska / Murga', 'Ska / Murga'),
+    ('No aplica', 'No aplica'),
+]
+
+PROMOCIONES_CHOICES = [
+    ('', '— Seleccione —'),
+    ('Cumpleaneros del mes', 'Cumpleaneros del mes'),
+    ('Tequilazo', 'Tequilazo'),
+    ('JagerNight', 'JagerNight'),
+    ('Fiesta Pacena', 'Fiesta Pacena'),
+    ('Fiesta de disfraces', 'Fiesta de disfraces'),
+    ('Drink de cortesia', 'Drink de cortesia'),
+    ('No aplica', 'No aplica'),
+]
+
+
+class ParametrosForm(forms.Form):
     evento = forms.ModelChoiceField(
-        queryset=Evento.objects.filter(fecha__gte=now()),  # Uso correcto de 'now()'
-        label="Evento",
+        queryset=Evento.objects.filter(fecha__gte=now().date()).order_by('fecha'),
+        label='Evento a analizar',
         required=True,
-        widget=forms.Select(attrs={
-            'class': 'form-control col-12',
-        })
+        empty_label='— Seleccione un evento —',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    tipo_evento = forms.ChoiceField(
+        choices=TIPO_EVENTO_CHOICES,
+        label='Tipo de evento',
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    genero_musical = forms.ChoiceField(
+        choices=GENERO_MUSICAL_CHOICES,
+        label='Genero musical',
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    promociones = forms.ChoiceField(
+        choices=PROMOCIONES_CHOICES,
+        label='Promociones / Agregados',
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
     )
     aforo = forms.IntegerField(
-        label="Aforo esperado",
+        label='Aforo esperado (personas)',
+        min_value=0,
+        max_value=300,
         required=True,
         widget=forms.NumberInput(attrs={
-            'class': 'form-control col-3',
-            'placeholder': 'Ingrese el aforo esperado',
+            'class': 'form-control',
+            'placeholder': 'Ej: 150'
         })
     )
     ventas = forms.IntegerField(
-        label="Ventas esperadas",
+        label='Ventas esperadas (Bs.)',
+        min_value=2000,
+        max_value=20000,
         required=True,
         widget=forms.NumberInput(attrs={
-            'class': 'form-control col-3',
-            'placeholder': 'Ingrese las ventas esperadas',
+            'class': 'form-control',
+            'placeholder': 'Ej: 12000'
         })
     )
     consumo = forms.IntegerField(
-        label="Consumo esperado por cliente",
+        label='Consumo esperado por persona (Bs.)',
+        min_value=30,
+        max_value=200,
         required=True,
         widget=forms.NumberInput(attrs={
-            'class': 'form-control col-3',
-            'placeholder': 'Ingrese el consumo esperado por cliente',
+            'class': 'form-control',
+            'placeholder': 'Ej: 80'
         })
     )
 
-    class Meta:
-        model = Parametro
-        fields = ['evento', 'aforo', 'ventas', 'consumo']
+    def save(self):
+        from .models import ParametrosEntrada
+        data = self.cleaned_data
+        return ParametrosEntrada.objects.create(
+            evento=data['evento'],
+            aforo_esperado=data['aforo'],
+            ventas_esperadas=data['ventas'],
+            consumo_esperado=data['consumo'],
+            tipo_evento=data['tipo_evento'],
+            genero_musical=data.get('genero_musical', ''),
+            promociones=data.get('promociones', 'No aplica'),
+        )
 
 
 class BusquedaForm(forms.Form):
-    # Buscar solo eventos que tengan una fecha mayor o igual a una fecha específica
-
-
     tipo_evento = forms.ChoiceField(
-        choices=[
-            ("Concierto", "Concierto"),
-            ("Stand up comedy", "Stand up comedy"),
-            ("Fiesta", "Fiesta"),
-            ("Evento especial", "Evento especial"),
-        ],
-        label="Tipo de evento",
+        choices=TIPO_EVENTO_CHOICES,
+        label='Tipo de evento',
         required=False,
-        widget=forms.Select(attrs={
-            'class': 'form-control col-3',
-        })
-    )
-    show_presentado = forms.ChoiceField(
-        choices=[
-            ("Rock Nacional", "Rock Nacional"),
-            ("Tributo a un artista/ banda legendaria", "Tributo a un artista/ banda legendaria"),
-            ("Especial genero musical", "Especial genero musical"),
-            ("Especial decada o rango generacional", "Especial decada o rango generacional"),
-            ("After Party", "After Party"),
-            ("Artista Internacional o Extranjero", "Artista Internacional o Extranjero"),
-            ("Fiesta tematica", "Fiesta tematica"),
-            ("Presentacion de discos", "Presentacion de discos"),
-        ],
-        label="Show presentado",
-        required=False,
-        widget=forms.Select(attrs={
-            'class': 'form-control col-3',
-        })
+        widget=forms.Select(attrs={'class': 'form-control'})
     )
     genero_musical = forms.ChoiceField(
-        choices=[
-            ("Rock clasico", "Rock clasico"),
-            ("Rock alternativo", "Rock alternativo"),
-            ("Punk", "Punk"),
-            ("Electronica", "Electronica"),
-            ("Metal", "Metal"),
-            ("Pop Rock", "Pop Rock"),
-            ("Rap", "Rap"),
-            ("Rock Latino", "Rock Latino"),
-            ("Ska / Murga", "Ska / Murga"),
-            ("No aplica", "No aplica"),
-        ],
-        label="Género musical",
+        choices=GENERO_MUSICAL_CHOICES,
+        label='Genero musical',
         required=False,
-        widget=forms.Select(attrs={
-            'class': 'form-control col-3',
-        })
+        widget=forms.Select(attrs={'class': 'form-control'})
     )
     promociones = forms.ChoiceField(
-        choices=[
-            ("Cumpleañeros del mes", "Cumpleañeros del mes"),
-            ("Tequilazo", "Tequilazo"),
-            ("JagerNight", "JagerNight"),
-            ("Fiesta Paceña", "Fiesta Paceña"),
-            ("Fiesta de disfraces", "Fiesta de disfraces"),
-            ("Drink de cortesia", "Drink de cortesia"),
-            ("No aplica", "No aplica"),
-        ],
-        label="Promociones / Agregados",
+        choices=PROMOCIONES_CHOICES,
+        label='Promociones',
         required=False,
-        widget=forms.Select(attrs={
-            'class': 'form-control col-3',
-        })
+        widget=forms.Select(attrs={'class': 'form-control'})
     )

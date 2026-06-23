@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Registrar Caso Historico</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            Consolidacion #{{ consolidacion.id }} —
+                            {{ consolidacion.sesion.usuario_encargado.username }}
+                            ({{ consolidacion.fecha }})
+                        </h3>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <strong>Total de ventas de la sesion: Bs. {{ total_ventas }}</strong>
+                            — Este valor se usara automaticamente como ventas reales.
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Tipo de evento *</label>
+                                    <select name="tipo_evento" class="form-control" required>
+                                        {% for val, label in tipo_evento_choices %}
+                                        <option value="{{ val }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Genero musical</label>
+                                    <select name="genero_musical" class="form-control">
+                                        {% for val, label in genero_musical_choices %}
+                                        <option value="{{ val }}">{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Promociones aplicadas</label>
+                                <select name="promociones" class="form-control">
+                                    {% for val, label in promociones_choices %}
+                                    <option value="{{ val }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <hr>
+                            <h5>Variables difusas</h5>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label>Aforo real del evento *</label>
+                                    <input type="number" name="aforo_esperado"
+                                        class="form-control" min="0" max="300"
+                                        placeholder="Ej: 150" required>
+                                    <small class="text-muted">Personas que asistieron</small>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label>Ventas esperadas (Bs.) *</label>
+                                    <input type="number" name="ventas_esperadas"
+                                        class="form-control" min="2000" max="20000"
+                                        placeholder="Ej: 12000" required>
+                                    <small class="text-muted">Lo que se esperaba vender</small>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label>Consumo por persona (Bs.) *</label>
+                                    <input type="number" name="consumo_esperado"
+                                        class="form-control" min="30" max="200"
+                                        placeholder="Ej: 80" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Ventas reales obtenidas (Bs.) *</label>
+                                <input type="number" name="ventas_reales"
+                                    class="form-control" min="0" step="0.01"
+                                    value="{{ total_ventas }}" required>
+                                <small class="text-muted">
+                                    Se precarga con el total de la sesion. Puede ajustarlo si es necesario.
+                                </small>
+                            </div>
+
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-calculator mr-1"></i>
+                                El sistema calculara automaticamente:
+                                <ul class="mb-0 mt-1">
+                                    <li><strong>Performance</strong> = ventas reales / ventas esperadas × 100</li>
+                                    <li><strong>Coeficiente</strong> = resultado de la logica difusa con los parametros ingresados</li>
+                                </ul>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{% url 'ventas:revisar_consolidaciones' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left mr-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save mr-1"></i> Registrar caso historico
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h3 class="card-title">Resumen de ventas</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for nombre, datos in consolidacion.resumen.items %}
+                                <tr>
+                                    <td>{{ nombre }}</td>
+                                    <td class="text-center">{{ datos.cantidad_total }}</td>
+                                    <td class="text-right">Bs. {{ datos.total_bs }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">Sin datos</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-success">
+                                    <th colspan="2">Total sesion</th>
+                                    <th class="text-right">Bs. {{ total_ventas }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
