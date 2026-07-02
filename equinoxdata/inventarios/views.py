@@ -14,10 +14,21 @@ def inventario_list(request):
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('usuarios:inicio')
 
-    inventarios = Inventario.objects.select_related('producto').all().order_by('producto__nombre')
+    hoy = timezone.now().date()
+    busqueda = request.GET.get('q', '').strip()
+    categoria_filtro = request.GET.get('categoria', '').strip()
+
+    inventarios = Inventario.objects.select_related('producto').all()
+
+    if busqueda:
+        inventarios = inventarios.filter(producto__nombre__icontains=busqueda)
+
+    if categoria_filtro:
+        inventarios = inventarios.filter(producto__categoria=categoria_filtro)
+
+    inventarios = inventarios.order_by('producto__categoria', 'producto__nombre')
 
     # Calcular discrepancias con la ultima apertura
-    hoy = timezone.now().date()
     for inv in inventarios:
         apertura = AperturaDiaria.objects.filter(
             producto=inv.producto,
@@ -31,11 +42,29 @@ def inventario_list(request):
             inv.disc_botellas = None
             inv.disc_medidas = None
 
-    return render(request, 'inventarios/inventario_list.html', {
-        'inventarios': inventarios,
-        'hoy': hoy,
-    })
+    # Agrupar por categoria
+    from itertools import groupby
+    from productos.models import ProductoBase
 
+    inventarios_list = list(inventarios)
+    grupos = {}
+    for inv in inventarios_list:
+        cat = inv.producto.categoria or 'sin_categoria'
+        cat_display = inv.producto.get_categoria_display() if inv.producto.categoria else 'Sin categoría'
+        if cat not in grupos:
+            grupos[cat] = {'nombre': cat_display, 'items': []}
+        grupos[cat]['items'].append(inv)
+
+    categorias = ProductoBase.CATEGORIA_CHOICES
+
+    return render(request, 'inventarios/inventario_list.html', {
+        'inventarios': inventarios_list,
+        'grupos': grupos,
+        'hoy': hoy,
+        'busqueda': busqueda,
+        'categoria_filtro': categoria_filtro,
+        'categorias': categorias,
+    })
 
 @login_required
 def apertura_diaria(request):
@@ -144,12 +173,15 @@ def ajustar_inventario(request, producto_id):
         'inventario': inventario,
     })
 
-
 @login_required
 def historial_movimientos(request, producto_id=None):
     if not request.user.tiene_acceso_inventarios():
         messages.error(request, 'No tiene permisos para acceder a esta seccion.')
         return redirect('usuarios:inicio')
+
+    busqueda = request.GET.get('q', '').strip()
+    categoria_filtro = request.GET.get('categoria', '').strip()
+    tipo_filtro = request.GET.get('tipo', '').strip()
 
     if producto_id:
         producto = get_object_or_404(ProductoBase, id=producto_id)
@@ -160,13 +192,30 @@ def historial_movimientos(request, producto_id=None):
         producto = None
         movimientos = MovimientoInventario.objects.select_related(
             'producto', 'registrado_por'
-        ).order_by('-fecha')[:100]
+        ).order_by('-fecha')
+
+    if busqueda:
+        movimientos = movimientos.filter(producto__nombre__icontains=busqueda)
+    if categoria_filtro:
+        movimientos = movimientos.filter(producto__categoria=categoria_filtro)
+    if tipo_filtro:
+        movimientos = movimientos.filter(tipo=tipo_filtro)
+
+    movimientos = movimientos[:200]
+
+    from productos.models import ProductoBase as PB
+    categorias = PB.CATEGORIA_CHOICES
+    tipos = MovimientoInventario.TIPO_CHOICES
 
     return render(request, 'inventarios/historial_movimientos.html', {
         'movimientos': movimientos,
         'producto': producto,
+        'busqueda': busqueda,
+        'categoria_filtro': categoria_filtro,
+        'tipo_filtro': tipo_filtro,
+        'categorias': categorias,
+        'tipos': tipos,
     })
-
 
 @login_required
 def registrar_saldos(request):

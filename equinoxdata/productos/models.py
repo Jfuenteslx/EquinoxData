@@ -10,12 +10,34 @@ class ProductoBase(models.Model):
         ('unidad', 'Unidad'),
     ]
 
+    CATEGORIA_CHOICES = [
+        ('whisky', 'Whisky'),
+        ('tequila', 'Tequila'),
+        ('ron', 'Ron'),
+        ('vodka', 'Vodka'),
+        ('gin', 'Gin'),
+        ('fernet', 'Fernet'),
+        ('singani', 'Singani'),
+        ('varios', 'Varios'),
+        ('cerveza', 'Cerveza'),
+        ('soda', 'Sodas'),
+        ('energizante', 'Energizante'),
+        ('cigarrillo', 'Cigarrillos'),
+    ]
+
     nombre = models.CharField(max_length=255, unique=True)
     descripcion = models.TextField(blank=True, null=True)
     unidad_medida = models.CharField(
         max_length=20,
         choices=UNIDAD_CHOICES,
         default='botella'
+    )
+    categoria = models.CharField(
+        max_length=20,
+        choices=CATEGORIA_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Categoría del insumo para filtrado en inventario."
     )
     contenido_neto_ml = models.IntegerField(
         help_text="Contenido neto en ml (ej: 750, 1000). Solo para botellas.",

@@ -161,6 +161,8 @@ def producto_menu_update(request, pk):
             formset.save()
             messages.success(request, f'Producto "{producto.nombre}" actualizado correctamente.')
             return redirect('productos:producto-menu-list')
+        else:
+            messages.error(request, 'Hay errores en el formulario. Revise los campos.')
     else:
         form = ProductoMenuForm(instance=producto)
         formset = RecetaItemFormSet(instance=producto)
@@ -170,7 +172,6 @@ def producto_menu_update(request, pk):
         'formset': formset,
         'producto': producto,
     })
-
 
 @method_decorator(login_required, name='dispatch')
 class ProductoMenuDeleteView(DeleteView):

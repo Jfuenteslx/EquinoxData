@@ -12,21 +12,71 @@
 
 <section class="content">
     <div class="container-fluid">
+
         <div class="mb-3">
             <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left mr-1"></i> Volver al inventario
             </a>
         </div>
+
+        <!-- Filtros -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <form method="get" class="form-inline flex-wrap">
+                    <div class="input-group mr-2 mb-1" style="width:250px;">
+                        <input type="text" name="q" class="form-control form-control-sm"
+                            placeholder="Buscar insumo..." value="{{ busqueda }}">
+                        <div class="input-group-append">
+                            <button class="btn btn-sm btn-primary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <select name="categoria" class="form-control form-control-sm mr-2 mb-1" style="width:160px;">
+                        <option value="">— Categoría —</option>
+                        {% for valor, nombre in categorias %}
+                        <option value="{{ valor }}" {% if categoria_filtro == valor %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select name="tipo" class="form-control form-control-sm mr-2 mb-1" style="width:160px;">
+                        <option value="">— Tipo movimiento —</option>
+                        {% for valor, nombre in tipos %}
+                        <option value="{{ valor }}" {% if tipo_filtro == valor %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-sm btn-outline-secondary mr-2 mb-1" type="submit">Filtrar</button>
+                    {% if busqueda or categoria_filtro or tipo_filtro %}
+                    <a href="{% url 'inventarios:historial_movimientos' %}" class="btn btn-sm btn-link mb-1">
+                        <i class="fas fa-times"></i> Limpiar
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Ultimos movimientos</h3>
+                <h3 class="card-title">
+                    Movimientos
+                    {% if busqueda or categoria_filtro or tipo_filtro %}
+                    <small class="text-muted ml-2">(filtrado)</small>
+                    {% endif %}
+                </h3>
+                <div class="card-tools">
+                    <small class="text-muted">Mostrando últimos {{ movimientos|length }} registros</small>
+                </div>
             </div>
             <div class="card-body table-responsive p-0">
-                <table class="table table-hover text-nowrap">
+                <table class="table table-hover table-sm text-nowrap">
                     <thead>
                         <tr>
                             <th>Fecha</th>
                             <th>Insumo</th>
+                            <th>Categoría</th>
                             <th>Tipo</th>
                             <th class="text-center">Botellas</th>
                             <th class="text-center">Medidas</th>
@@ -38,7 +88,12 @@
                         {% for mov in movimientos %}
                         <tr>
                             <td>{{ mov.fecha|date:"d/m/Y H:i" }}</td>
-                            <td>{{ mov.producto.nombre }}</td>
+                            <td><strong>{{ mov.producto.nombre }}</strong></td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ mov.producto.get_categoria_display|default:"—" }}
+                                </small>
+                            </td>
                             <td>
                                 <span class="badge
                                     {% if mov.tipo == 'compra' %}badge-success
@@ -49,23 +104,34 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                {% if mov.botellas > 0 %}+{% endif %}{{ mov.botellas }}
+                                {% if mov.botellas > 0 %}
+                                <span class="text-success">+{{ mov.botellas }}</span>
+                                {% elif mov.botellas < 0 %}
+                                <span class="text-danger">{{ mov.botellas }}</span>
+                                {% else %}—{% endif %}
                             </td>
                             <td class="text-center">
-                                {% if mov.medidas > 0 %}+{% endif %}{{ mov.medidas }}
+                                {% if mov.medidas > 0 %}
+                                <span class="text-success">+{{ mov.medidas }}</span>
+                                {% elif mov.medidas < 0 %}
+                                <span class="text-danger">{{ mov.medidas }}</span>
+                                {% else %}—{% endif %}
                             </td>
                             <td>{{ mov.referencia|default:"—" }}</td>
                             <td>{{ mov.registrado_por.username|default:"—" }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted">No hay movimientos registrados.</td>
+                            <td colspan="8" class="text-center text-muted py-3">
+                                No hay movimientos registrados{% if busqueda %} para "{{ busqueda }}"{% endif %}.
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+
     </div>
 </section>
 

@@ -95,13 +95,15 @@ class ProductoMenuForm(forms.ModelForm):
             'habilitado': 'Disponible en menu',
         }
 
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['insumo_base'].queryset = ProductoBase.objects.filter(
             habilitado=True
         ).order_by('nombre')
         self.fields['insumo_base'].required = False
-        self.fields['insumo_base'].empty_label = '— Sin insumo base (extras y cocteles) —'
+        self.fields['insumo_base'].empty_label = '— Sin insumo base —'
+        self.fields['medidas_por_venta'].required = False  # agregar esta línea
 
 
 class RecetaItemForm(forms.ModelForm):
@@ -137,6 +139,6 @@ RecetaItemFormSet = forms.inlineformset_factory(
     form=RecetaItemForm,
     extra=3,
     can_delete=True,
-    min_num=1,
+    min_num=0,
     validate_min=False,
 )

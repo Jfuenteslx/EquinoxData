@@ -13,22 +13,39 @@
         {% if ya_apertura %}
         <div class="alert alert-warning">
             <i class="fas fa-exclamation-triangle mr-1"></i>
-            Ya existe una apertura registrada para hoy. Solo puede realizarse una apertura por dia.
+            Ya existe una apertura registrada para hoy. Solo puede realizarse una apertura por día.
             <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-sm btn-warning ml-3">Ver inventario</a>
         </div>
         {% else %}
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Conteo fisico de insumos</h3>
-                <div class="card-tools">
-                    <small class="text-muted">Ingrese las cantidades contadas fisicamente en bodega</small>
+        <form method="post">
+            {% csrf_token %}
+
+            {% regroup filas by producto.categoria as filas_por_categoria %}
+
+            {% for grupo in filas_por_categoria %}
+            <div class="card mb-2">
+                <div class="card-header bg-dark py-2">
+                    <h5 class="card-title mb-0 text-white">
+                        <i class="fas fa-tag mr-2"></i>
+                        {% if grupo.grouper == 'whisky' %}Whisky
+                        {% elif grupo.grouper == 'tequila' %}Tequila
+                        {% elif grupo.grouper == 'ron' %}Ron
+                        {% elif grupo.grouper == 'vodka' %}Vodka
+                        {% elif grupo.grouper == 'gin' %}Gin
+                        {% elif grupo.grouper == 'fernet' %}Fernet
+                        {% elif grupo.grouper == 'singani' %}Singani
+                        {% elif grupo.grouper == 'varios' %}Varios
+                        {% elif grupo.grouper == 'cerveza' %}Cerveza
+                        {% elif grupo.grouper == 'soda' %}Sodas
+                        {% elif grupo.grouper == 'energizante' %}Energizante
+                        {% elif grupo.grouper == 'cigarrillo' %}Cigarrillos
+                        {% else %}Sin categoría{% endif %}
+                        <span class="badge badge-light ml-2">{{ grupo.list|length }}</span>
+                    </h5>
                 </div>
-            </div>
-            <form method="post">
-                {% csrf_token %}
                 <div class="card-body p-0">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="thead-light">
                             <tr>
                                 <th>Insumo</th>
                                 <th>Unidad</th>
@@ -38,7 +55,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for fila in filas %}
+                            {% for fila in grupo.list %}
                             <tr>
                                 <td><strong>{{ fila.producto.nombre }}</strong></td>
                                 <td>{{ fila.producto.get_unidad_medida_display }}</td>
@@ -49,27 +66,33 @@
                                         <span class="text-muted">Sin registro</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-center">{{ fila.campo_botellas }}</td>
-                                <td class="text-center">{{ fila.campo_medidas }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">No hay insumos habilitados.</td>
+                                <td class="text-center" style="width:130px;">
+                                    {{ fila.campo_botellas }}
+                                </td>
+                                <td class="text-center" style="width:130px;">
+                                    {% if fila.producto.unidad_medida == 'botella' %}
+                                        {{ fila.campo_medidas }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                <div class="card-footer d-flex justify-content-between">
-                    <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left mr-1"></i> Cancelar
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save mr-1"></i> Guardar apertura
-                    </button>
-                </div>
-            </form>
-        </div>
+            </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save mr-1"></i> Guardar apertura
+                </button>
+            </div>
+        </form>
         {% endif %}
 
     </div>

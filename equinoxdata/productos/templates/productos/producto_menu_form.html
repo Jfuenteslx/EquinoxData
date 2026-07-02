@@ -20,7 +20,7 @@
                         </h3>
                     </div>
                     <div class="card-body">
-                        <form method="post">
+                        <form method="post" novalidate>
                             {% csrf_token %}
 
                             <div class="form-group">
@@ -95,6 +95,26 @@
                             </div>
 
                             <div class="d-flex justify-content-between mt-4">
+                                {% if form.errors or formset.errors %}
+                                <div class="alert alert-danger">
+                                    {% for field in form %}
+                                        {% if field.errors %}
+                                            <strong>{{ field.label }}:</strong> {{ field.errors.0 }}<br>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if form.non_field_errors %}
+                                        {{ form.non_field_errors }}<br>
+                                    {% endif %}
+                                    {% for f in formset %}
+                                        {% if f.errors %}
+                                            <strong>Receta:</strong> {{ f.errors }}<br>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if formset.non_form_errors %}
+                                        {{ formset.non_form_errors }}
+                                    {% endif %}
+                                </div>
+                                {% endif %}
                                 <a href="{% url 'productos:producto-menu-list' %}" class="btn btn-secondary">
                                     <i class="fas fa-arrow-left mr-1"></i> Volver
                                 </a>
@@ -142,12 +162,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mostrar/ocultar receta
         seccionReceta.style.display = tipo === 'coctel_jarra' ? 'block' : 'none';
 
-        // Insumo base: deshabilitado para extra y coctel_jarra
+        // Insumo base: ocultar para extra y coctel_jarra pero NO deshabilitar
         if (tipo === 'extra' || tipo === 'coctel_jarra') {
-            insumoBase.disabled = true;
+            insumoBase.closest('.form-group').style.display = 'none';
             insumoBase.value = '';
         } else {
-            insumoBase.disabled = false;
+            insumoBase.closest('.form-group').style.display = 'block';
         }
 
         // Medidas por venta: solo para vaso
