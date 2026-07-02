@@ -1,3 +1,466 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from decimal import Decimal
 
-# Create your views here.
+from .models import (
+    CierreDiario, OtroIngreso, GastoDiario, EgresoGrande,
+    SueldoNoche, EntregaMesera, CierreBancario, ResumenSemanal
+)
+from usuarios.models import Usuario
+
+
+def solo_admin_jefe(user):
+    return user.rol in ['administrador', 'jefe_barra']
+
+
+# ------------------------------------------------------------------ #
+# CIERRES DIARIOS                                                      #
+# ------------------------------------------------------------------ #
+
+@login_required
+def lista_cierres(request):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para acceder a esta sección.')
+        return redirect('usuarios:inicio')
+    cierres = CierreDiario.objects.all().order_by('-fecha')
+    return render(request, 'cuentas/lista_cierres.html', {'cierres': cierres})
+
+
+@login_required
+def crear_cierre(request):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    if request.method == 'POST':
+        fecha = request.POST.get('fecha')
+        evento_id = request.POST.get('evento') or None
+        caja_inicial = request.POST.get('caja_inicial', 0)
+        ingresos_ventas_manual = request.POST.get('ingresos_ventas_manual') or None
+        monto_pedido_semanal = request.POST.get('monto_pedido_semanal') or None
+        observacion_pedido = request.POST.get('observacion_pedido', '')
+        observaciones = request.POST.get('observaciones', '')
+
+        if CierreDiario.objects.filter(fecha=fecha).exists():
+            messages.error(request, f'Ya existe un cierre para la fecha {fecha}.')
+            return redirect('cuentas:crear_cierre')
+
+        evento = None
+        if evento_id:
+            from eventos.models import Evento
+            evento = get_object_or_404(Evento, pk=evento_id)
+
+        cierre = CierreDiario.objects.create(
+            fecha=fecha,
+            evento=evento,
+            caja_inicial=caja_inicial or 0,
+            ingresos_ventas_manual=ingresos_ventas_manual,
+            usar_ventas_manual=True,
+            monto_pedido_semanal=monto_pedido_semanal,
+            observacion_pedido=observacion_pedido,
+            observaciones=observaciones,
+        )
+        messages.success(request, f'Cierre del {fecha} creado correctamente.')
+        return redirect('cuentas:detalle_cierre', pk=cierre.pk)
+
+    from eventos.models import Evento
+    eventos = Evento.objects.all().order_by('-fecha')
+    return render(request, 'cuentas/crear_cierre.html', {'eventos': eventos})
+
+
+@login_required
+def detalle_cierre(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para acceder a esta sección.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=pk)
+    usuarios_sistema = Usuario.objects.filter(rol__in=['mesero', 'bartender'])
+
+    context = {
+        'cierre': cierre,
+        'otros_ingresos': cierre.otros_ingresos.all(),
+        'gastos_diarios': cierre.gastos_diarios.all(),
+        'egresos_grandes': cierre.egresos_grandes.all(),
+        'sueldos': cierre.sueldos.all(),
+        'entregas': cierre.entregas_meseras.all(),
+        'cierres_bancarios': cierre.cierres_bancarios.all(),
+        'usuarios_sistema': usuarios_sistema,
+        'personal_sistema': Usuario.objects.filter(rol__in=['administrador', 'jefe_barra', 'bartender']),
+        'meseros': Usuario.objects.filter(rol='mesero'),
+    }
+    return render(request, 'cuentas/detalle_cierre.html', context)
+
+
+@login_required
+def cerrar_cierre(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=pk)
+    if request.method == 'POST':
+        caja_hay = request.POST.get('caja_hay')
+        if caja_hay:
+            cierre.caja_hay = Decimal(caja_hay)
+        cierre.estado = 'cerrado'
+        cierre.save()
+        messages.success(request, f'Cierre del {cierre.fecha} cerrado correctamente.')
+    return redirect('cuentas:detalle_cierre', pk=pk)
+
+
+# ------------------------------------------------------------------ #
+# OTROS INGRESOS                                                       #
+# ------------------------------------------------------------------ #
+
+@login_required
+def agregar_otro_ingreso(request, cierre_pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=cierre_pk)
+    if request.method == 'POST':
+        OtroIngreso.objects.create(
+            cierre=cierre,
+            concepto=request.POST.get('concepto'),
+            concepto_otro=request.POST.get('concepto_otro', ''),
+            monto=request.POST.get('monto'),
+        )
+        messages.success(request, 'Ingreso agregado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+@login_required
+def eliminar_otro_ingreso(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+    ingreso = get_object_or_404(OtroIngreso, pk=pk)
+    cierre_pk = ingreso.cierre.pk
+    ingreso.delete()
+    messages.success(request, 'Ingreso eliminado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+# ------------------------------------------------------------------ #
+# GASTOS DIARIOS                                                       #
+# ------------------------------------------------------------------ #
+
+@login_required
+def agregar_gasto_diario(request, cierre_pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=cierre_pk)
+    if request.method == 'POST':
+        GastoDiario.objects.create(
+            cierre=cierre,
+            concepto=request.POST.get('concepto'),
+            monto=request.POST.get('monto'),
+        )
+        messages.success(request, 'Gasto diario agregado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+@login_required
+def eliminar_gasto_diario(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+    gasto = get_object_or_404(GastoDiario, pk=pk)
+    cierre_pk = gasto.cierre.pk
+    gasto.delete()
+    messages.success(request, 'Gasto eliminado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+# ------------------------------------------------------------------ #
+# EGRESOS GRANDES                                                      #
+# ------------------------------------------------------------------ #
+
+@login_required
+def agregar_egreso_grande(request, cierre_pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=cierre_pk)
+    if request.method == 'POST':
+        EgresoGrande.objects.create(
+            cierre=cierre,
+            concepto=request.POST.get('concepto'),
+            concepto_otro=request.POST.get('concepto_otro', ''),
+            monto=request.POST.get('monto'),
+            observacion=request.POST.get('observacion', ''),
+        )
+        messages.success(request, 'Egreso agregado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+@login_required
+def eliminar_egreso_grande(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+    egreso = get_object_or_404(EgresoGrande, pk=pk)
+    cierre_pk = egreso.cierre.pk
+    egreso.delete()
+    messages.success(request, 'Egreso eliminado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+# ------------------------------------------------------------------ #
+# SUELDOS                                                              #
+# ------------------------------------------------------------------ #
+
+@login_required
+def agregar_sueldo(request, cierre_pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=cierre_pk)
+
+    if request.method == 'POST':
+        tipo_persona = request.POST.get('tipo_persona')  # 'sistema' o 'libre'
+        tipo = request.POST.get('tipo')
+        caja_mesero = request.POST.get('caja_mesero') or None
+        porcentaje = request.POST.get('porcentaje') or None
+        monto_fijo = request.POST.get('monto_fijo') or None
+        descuento = request.POST.get('descuento') or 0
+        observacion = request.POST.get('observacion', '')
+
+        if tipo_persona == 'sistema':
+            empleado_id = request.POST.get('empleado')
+            empleado = get_object_or_404(Usuario, pk=empleado_id)
+            sueldo, created = SueldoNoche.objects.get_or_create(
+                cierre=cierre,
+                empleado=empleado,
+                defaults={
+                    'tipo': tipo,
+                    'caja_mesero': caja_mesero,
+                    'porcentaje': porcentaje,
+                    'monto_fijo': monto_fijo,
+                    'descuento': descuento,
+                    'observacion': observacion,
+                }
+            )
+            if not created:
+                sueldo.tipo = tipo
+                sueldo.caja_mesero = caja_mesero
+                sueldo.porcentaje = porcentaje
+                sueldo.monto_fijo = monto_fijo
+                sueldo.descuento = descuento
+                sueldo.observacion = observacion
+                sueldo.save()
+            nombre = empleado.get_full_name() or empleado.username
+        else:
+            nombre_libre = request.POST.get('nombre_libre', '')
+            puesto = request.POST.get('puesto', '')
+            sueldo = SueldoNoche.objects.create(
+                cierre=cierre,
+                nombre_libre=nombre_libre,
+                puesto=puesto,
+                tipo=tipo,
+                caja_mesero=caja_mesero,
+                porcentaje=porcentaje,
+                monto_fijo=monto_fijo,
+                descuento=descuento,
+                observacion=observacion,
+            )
+            nombre = nombre_libre
+
+        messages.success(request, f'Sueldo de {nombre} registrado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+@login_required
+def eliminar_sueldo(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+    sueldo = get_object_or_404(SueldoNoche, pk=pk)
+    cierre_pk = sueldo.cierre.pk
+    sueldo.delete()
+    messages.success(request, 'Sueldo eliminado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+# ------------------------------------------------------------------ #
+# ENTREGAS (MESERAS Y BARRA)                                           #
+# ------------------------------------------------------------------ #
+
+@login_required
+def agregar_entrega_mesera(request, cierre_pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=cierre_pk)
+
+    if request.method == 'POST':
+        es_barra = request.POST.get('es_barra') == '1'
+        usuario_id = request.POST.get('usuario') or None
+        efectivo = request.POST.get('efectivo') or 0
+        qr = request.POST.get('qr') or 0
+        voucher_banco = request.POST.get('voucher_banco') or 0
+        total_talonario = request.POST.get('total_talonario') or None
+        observacion = request.POST.get('observacion', '')
+        comprobante = request.FILES.get('comprobante')
+
+        usuario = get_object_or_404(Usuario, pk=usuario_id) if usuario_id else None
+
+        entrega, created = EntregaMesera.objects.get_or_create(
+            cierre=cierre,
+            usuario=usuario,
+            es_barra=es_barra,
+            defaults={
+                'efectivo': efectivo,
+                'qr': qr,
+                'voucher_banco': voucher_banco,
+                'total_talonario': total_talonario,
+                'observacion': observacion,
+            }
+        )
+
+        if not created:
+            entrega.efectivo = efectivo
+            entrega.qr = qr
+            entrega.voucher_banco = voucher_banco
+            entrega.total_talonario = total_talonario
+            entrega.observacion = observacion
+            if comprobante:
+                entrega.comprobante = comprobante
+            entrega.save()
+            messages.success(request, 'Entrega actualizada.')
+        else:
+            if comprobante:
+                entrega.comprobante = comprobante
+                entrega.save()
+            messages.success(request, 'Entrega registrada.')
+
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+@login_required
+def editar_entrega_mesera(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    entrega = get_object_or_404(EntregaMesera, pk=pk)
+    cierre = entrega.cierre
+
+    if request.method == 'POST':
+        entrega.efectivo = request.POST.get('efectivo') or 0
+        entrega.qr = request.POST.get('qr') or 0
+        entrega.voucher_banco = request.POST.get('voucher_banco') or 0
+        entrega.total_talonario = request.POST.get('total_talonario') or None
+        entrega.observacion = request.POST.get('observacion', '')
+        if request.FILES.get('comprobante'):
+            entrega.comprobante = request.FILES.get('comprobante')
+        entrega.save()
+        messages.success(request, 'Entrega actualizada correctamente.')
+        return redirect('cuentas:detalle_cierre', pk=cierre.pk)
+
+    return render(request, 'cuentas/editar_entrega.html', {
+        'entrega': entrega,
+        'cierre': cierre,
+    })
+
+
+@login_required
+def eliminar_entrega_mesera(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+    entrega = get_object_or_404(EntregaMesera, pk=pk)
+    cierre_pk = entrega.cierre.pk
+    entrega.delete()
+    messages.success(request, 'Entrega eliminada.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+# ------------------------------------------------------------------ #
+# CIERRES BANCARIOS                                                    #
+# ------------------------------------------------------------------ #
+
+@login_required
+def agregar_cierre_bancario(request, cierre_pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    cierre = get_object_or_404(CierreDiario, pk=cierre_pk)
+    if request.method == 'POST':
+        CierreBancario.objects.create(
+            cierre=cierre,
+            cuenta=request.POST.get('cuenta'),
+            lote=request.POST.get('lote'),
+            monto=request.POST.get('monto'),
+        )
+        messages.success(request, 'Cierre bancario agregado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+@login_required
+def eliminar_cierre_bancario(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+    cierre_b = get_object_or_404(CierreBancario, pk=pk)
+    cierre_pk = cierre_b.cierre.pk
+    cierre_b.delete()
+    messages.success(request, 'Cierre bancario eliminado.')
+    return redirect('cuentas:detalle_cierre', pk=cierre_pk)
+
+
+# ------------------------------------------------------------------ #
+# RESUMEN SEMANAL                                                      #
+# ------------------------------------------------------------------ #
+
+@login_required
+def lista_resumenes(request):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para acceder a esta sección.')
+        return redirect('usuarios:inicio')
+    resumenes = ResumenSemanal.objects.all().order_by('-fecha_inicio')
+    return render(request, 'cuentas/lista_resumenes.html', {'resumenes': resumenes})
+
+
+@login_required
+def crear_resumen(request):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para realizar esta acción.')
+        return redirect('usuarios:inicio')
+
+    if request.method == 'POST':
+        resumen = ResumenSemanal.objects.create(
+            fecha_inicio=request.POST.get('fecha_inicio'),
+            fecha_fin=request.POST.get('fecha_fin'),
+            nombre=request.POST.get('nombre', ''),
+        )
+        cierre_ids = request.POST.getlist('cierres')
+        if cierre_ids:
+            resumen.cierres.set(CierreDiario.objects.filter(pk__in=cierre_ids))
+        messages.success(request, 'Resumen semanal creado.')
+        return redirect('cuentas:detalle_resumen', pk=resumen.pk)
+
+    cierres = CierreDiario.objects.filter(estado='cerrado').order_by('-fecha')
+    return render(request, 'cuentas/crear_resumen.html', {'cierres': cierres})
+
+
+@login_required
+def detalle_resumen(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos para acceder a esta sección.')
+        return redirect('usuarios:inicio')
+    resumen = get_object_or_404(ResumenSemanal, pk=pk)
+    return render(request, 'cuentas/detalle_resumen.html', {
+        'resumen': resumen,
+        'totales': resumen.calcular_totales(),
+        'cierres': resumen.cierres.all().order_by('fecha'),
+    })

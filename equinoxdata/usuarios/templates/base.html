@@ -202,6 +202,28 @@
                         </ul>
                     </li>
                     {% endif %}
+                    {% if user.tiene_acceso_compras %}
+                    <li class="nav-item has-treeview">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-calculator"></i>
+                            <p>Cuentas <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'cuentas:lista_cierres' %}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Cierres diarios</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'cuentas:lista_resumenes' %}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Resúmenes semanales</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
 
                     <!-- Analizador - admin y jefe de barra -->
                     {% if user.tiene_acceso_analizador %}

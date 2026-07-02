@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Editar Entrega — {{ entrega.nombre_display }}</h1>
+        <small class="text-muted">Cierre del {{ cierre.fecha|date:"d/m/Y" }}</small>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            {% if entrega.es_barra %}
+                                <i class="fas fa-glass-martini-alt mr-2"></i>Barra
+                            {% else %}
+                                <i class="fas fa-user mr-2"></i>{{ entrega.nombre_display }}
+                            {% endif %}
+                        </h3>
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="card-body">
+
+                            <div class="form-group">
+                                <label>Total talonario (bs)</label>
+                                <input type="number" name="total_talonario" class="form-control"
+                                    step="0.01" min="0"
+                                    value="{{ entrega.total_talonario|default:'' }}">
+                                <small class="text-muted">Total de ventas según talonario</small>
+                            </div>
+
+                            <hr>
+                            <p class="text-muted mb-2"><strong>Desglose de entrega</strong></p>
+
+                            <div class="form-group">
+                                <label>Efectivo (bs)</label>
+                                <input type="number" name="efectivo" class="form-control"
+                                    step="0.01" min="0" value="{{ entrega.efectivo }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label>QR (bs)</label>
+                                <input type="number" name="qr" class="form-control"
+                                    step="0.01" min="0" value="{{ entrega.qr }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Voucher banco (bs)</label>
+                                <input type="number" name="voucher_banco" class="form-control"
+                                    step="0.01" min="0" value="{{ entrega.voucher_banco }}">
+                            </div>
+
+                            <div class="alert alert-info py-2">
+                                <strong>Total entregado:</strong> {{ entrega.total_entregado|floatformat:2 }} bs
+                                {% if entrega.diferencia is not None %}
+                                — <strong>Diferencia:</strong>
+                                <span class="{% if entrega.diferencia >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ entrega.diferencia|floatformat:2 }} bs
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group">
+                                <label>Observación</label>
+                                <input type="text" name="observacion" class="form-control"
+                                    value="{{ entrega.observacion }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Comprobante (foto)</label>
+                                {% if entrega.comprobante %}
+                                <div class="mb-2">
+                                    <img src="{{ entrega.comprobante.url }}" class="img-thumbnail" style="max-height:150px;">
+                                </div>
+                                {% endif %}
+                                <input type="file" name="comprobante" class="form-control-file" accept="image/*">
+                            </div>
+
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                            <a href="{% url 'cuentas:detalle_cierre' cierre.pk %}" class="btn btn-secondary ml-2">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

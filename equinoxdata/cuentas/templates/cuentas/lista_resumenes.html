@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">Resúmenes Semanales</h1></div>
+            <div class="col-sm-6 text-right">
+                <a href="{% url 'cuentas:crear_resumen' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nuevo Resumen
+                </a>
+                <a href="{% url 'cuentas:lista_cierres' %}" class="btn btn-secondary ml-2">
+                    <i class="fas fa-arrow-left"></i> Cierres
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead class="bg-dark text-white">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Período</th>
+                            <th>Noches</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in resumenes %}
+                        <tr>
+                            <td><strong>{{ r.nombre|default:"Sin nombre" }}</strong></td>
+                            <td>{{ r.fecha_inicio|date:"d/m/Y" }} — {{ r.fecha_fin|date:"d/m/Y" }}</td>
+                            <td>{{ r.cierres.count }}</td>
+                            <td>
+                                <a href="{% url 'cuentas:detalle_resumen' r.pk %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-4">No hay resúmenes. <a href="{% url 'cuentas:crear_resumen' %}">Crear el primero</a>.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

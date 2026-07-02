@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Nuevo Cierre Diario</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">Datos del cierre</h3>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="card-body">
+
+                            <div class="form-group">
+                                <label>Fecha <span class="text-danger">*</span></label>
+                                <input type="date" name="fecha" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Evento de la noche</label>
+                                <select name="evento" class="form-control">
+                                    <option value="">— Sin evento asociado —</option>
+                                    {% for evento in eventos %}
+                                    <option value="{{ evento.pk }}">{{ evento.nombre }} ({{ evento.fecha|date:"d/m/Y" }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Caja inicial (bs) <span class="text-danger">*</span></label>
+                                <input type="number" name="caja_inicial" class="form-control" step="0.01" min="0" value="521" required>
+                                <small class="text-muted">Monto en caja chica al iniciar la noche (CAJA DIARIA)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Total de ventas (bs)</label>
+                                <input type="number" name="ingresos_ventas_manual" class="form-control" step="0.01" min="0">
+                                <small class="text-muted">Ingrese el total de ventas de la noche</small>
+                            </div>
+
+                            <hr>
+                            <h6 class="text-muted">Pedido semanal (opcional)</h6>
+
+                            <div class="form-group">
+                                <label>Monto del pedido entregado al jefe de barra (bs)</label>
+                                <input type="number" name="monto_pedido_semanal" class="form-control" step="0.01" min="0">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Origen del dinero del pedido</label>
+                                <textarea name="observacion_pedido" class="form-control" rows="2"
+                                    placeholder="Ej: Ganancias semana anterior, QRs acumulados..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Observaciones generales</label>
+                                <textarea name="observaciones" class="form-control" rows="2"></textarea>
+                            </div>
+
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary">Crear cierre</button>
+                            <a href="{% url 'cuentas:lista_cierres' %}" class="btn btn-secondary ml-2">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

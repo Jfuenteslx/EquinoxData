@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">{{ resumen.nombre|default:"Resumen Semanal" }}</h1>
+                <small class="text-muted">{{ resumen.fecha_inicio|date:"d/m/Y" }} — {{ resumen.fecha_fin|date:"d/m/Y" }}</small>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a href="{% url 'cuentas:lista_resumenes' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        <!-- Totales globales -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3>{{ totales.total_ingresos|floatformat:2 }}</h3>
+                        <p>Total Ingresos (bs)</p>
+                    </div>
+                    <div class="icon"><i class="fas fa-arrow-up"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="small-box bg-danger">
+                    <div class="inner">
+                        <h3>{{ totales.total_egresos_compras|floatformat:2 }}</h3>
+                        <p>Egresos Compras (bs)</p>
+                    </div>
+                    <div class="icon"><i class="fas fa-shopping-bag"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3>{{ totales.total_sueldos|floatformat:2 }}</h3>
+                        <p>Sueldos (bs)</p>
+                    </div>
+                    <div class="icon"><i class="fas fa-users"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>{{ totales.total_neto|floatformat:2 }}</h3>
+                        <p>Total Neto (bs)</p>
+                    </div>
+                    <div class="icon"><i class="fas fa-chart-line"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen por noche -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Detalle por noche</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead class="bg-dark text-white">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Evento</th>
+                            <th class="text-right">Ventas</th>
+                            <th class="text-right">Otros ing.</th>
+                            <th class="text-right">Egresos</th>
+                            <th class="text-right">Sueldos</th>
+                            <th class="text-right">Gastos diarios</th>
+                            <th class="text-right">Bancos</th>
+                            <th class="text-right">Neto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in cierres %}
+                        <tr>
+                            <td><a href="{% url 'cuentas:detalle_cierre' c.pk %}">{{ c.fecha|date:"d/m/Y" }}</a></td>
+                            <td>{{ c.evento.nombre|default:"—" }}</td>
+                            <td class="text-right">{{ c.ingresos_ventas|floatformat:2 }}</td>
+                            <td class="text-right">{{ c.total_otros_ingresos|floatformat:2 }}</td>
+                            <td class="text-right">{{ c.total_egresos_compras|floatformat:2 }}</td>
+                            <td class="text-right">{{ c.total_sueldos|floatformat:2 }}</td>
+                            <td class="text-right">{{ c.total_gastos_diarios|floatformat:2 }}</td>
+                            <td class="text-right">{{ c.total_bancos|floatformat:2 }}</td>
+                            <td class="text-right"><strong>{{ c.total_neto|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="2">TOTALES</th>
+                            <th class="text-right">{{ totales.total_ventas|floatformat:2 }}</th>
+                            <th class="text-right">{{ totales.total_otros_ingresos|floatformat:2 }}</th>
+                            <th class="text-right">{{ totales.total_egresos_compras|floatformat:2 }}</th>
+                            <th class="text-right">{{ totales.total_sueldos|floatformat:2 }}</th>
+                            <th class="text-right">{{ totales.total_gastos_diarios|floatformat:2 }}</th>
+                            <th class="text-right">{{ totales.total_bancos|floatformat:2 }}</th>
+                            <th class="text-right">{{ totales.total_neto|floatformat:2 }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

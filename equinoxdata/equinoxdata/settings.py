@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'inventarios',
     'analizador',
     'productos',
+    'cuentas',
     # Django REST Framework
     'rest_framework',
     'crispy_forms',
