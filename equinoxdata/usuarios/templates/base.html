@@ -143,7 +143,7 @@
                     {% endif %}
 
 
-                    <!-- Compras - admin y jefe de barra -->
+<!-- Compras - admin y jefe de barra -->
                     {% if user.tiene_acceso_compras %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
@@ -151,6 +151,18 @@
                             <p>Compras <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'compras:lista_pedidos' %}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Pedidos</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'compras:crear_pedido' %}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Nuevo Pedido</p>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href="{% url 'compras:crear_compra' %}" class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>

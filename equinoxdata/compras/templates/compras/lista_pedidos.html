@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-6">
+                <h1 class="m-0 text-dark">Pedidos</h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a href="{% url 'compras:crear_pedido' %}" class="btn btn-success">
+                    <i class="fas fa-plus mr-1"></i> Nuevo Pedido
+                </a>
+                <a href="{% url 'compras:crear_compra' %}" class="btn btn-primary ml-2">
+                    <i class="fas fa-shopping-cart mr-1"></i> Registrar Compra
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        <!-- Filtros -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <form method="get" class="form-inline">
+                    <select name="tipo" class="form-control form-control-sm mr-2">
+                        <option value="">— Todos los tipos —</option>
+                        {% for valor, nombre in tipos %}
+                        <option value="{{ valor }}" {% if tipo_filtro == valor %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="estado" class="form-control form-control-sm mr-2">
+                        <option value="">— Todos los estados —</option>
+                        {% for valor, nombre in estados %}
+                        <option value="{{ valor }}" {% if estado_filtro == valor %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-sm btn-outline-secondary mr-2" type="submit">Filtrar</button>
+                    {% if tipo_filtro or estado_filtro %}
+                    <a href="{% url 'compras:lista_pedidos' %}" class="btn btn-sm btn-link">
+                        <i class="fas fa-times"></i> Limpiar
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm">
+                    <thead class="bg-dark text-white">
+                        <tr>
+                            <th>#</th>
+                            <th>Tipo</th>
+                            <th>Fecha solicitud</th>
+                            <th>Fecha requerida</th>
+                            <th>Solicitado por</th>
+                            <th class="text-right">Monto aprobado</th>
+                            <th class="text-right">Total referencial</th>
+                            <th class="text-right">Total comprado</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in pedidos %}
+                        <tr>
+                            <td><strong>#{{ pedido.id }}</strong></td>
+                            <td>
+                                <span class="badge
+                                    {% if pedido.tipo == 'planificacion' %}badge-primary
+                                    {% elif pedido.tipo == 'reposicion' %}badge-info
+                                    {% else %}badge-warning{% endif %}">
+                                    {{ pedido.get_tipo_display }}
+                                </span>
+                            </td>
+                            <td>{{ pedido.fecha_solicitud|date:"d/m/Y" }}</td>
+                            <td>{{ pedido.fecha_requerida|date:"d/m/Y"|default:"—" }}</td>
+                            <td>{{ pedido.solicitado_por.username }}</td>
+                            <td class="text-right">{{ pedido.monto_aprobado|floatformat:2 }} bs</td>
+                            <td class="text-right">{{ pedido.total_referencial|floatformat:2 }} bs</td>
+                            <td class="text-right">{{ pedido.total_comprado|floatformat:2 }} bs</td>
+                            <td>
+                                <span class="badge
+                                    {% if pedido.estado == 'borrador' %}badge-secondary
+                                    {% elif pedido.estado == 'aprobado' %}badge-success
+                                    {% elif pedido.estado == 'en_proceso' %}badge-warning
+                                    {% else %}badge-dark{% endif %}">
+                                    {{ pedido.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'compras:detalle_pedido' pedido.id %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">No hay pedidos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

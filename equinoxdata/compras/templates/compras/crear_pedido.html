@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark">Nuevo Pedido</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <form method="post" id="form-pedido">
+            {% csrf_token %}
+            <div class="row">
+
+                <!-- Datos generales -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Datos del pedido</h3></div>
+                        <div class="card-body">
+
+                            <div class="form-group">
+                                <label>Tipo <span class="text-danger">*</span></label>
+                                <select name="tipo" class="form-control" id="selectTipo" required>
+                                    {% for valor, nombre in tipos %}
+                                    <option value="{{ valor }}">{{ nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Fecha requerida</label>
+                                <input type="date" name="fecha_requerida" class="form-control">
+                            </div>
+
+                            <div class="form-group" id="divCierre" style="display:none;">
+                                <label>Cierre diario asociado</label>
+                                <select name="cierre_diario" class="form-control">
+                                    <option value="">— Seleccionar cierre —</option>
+                                    {% for cierre in cierres %}
+                                    <option value="{{ cierre.pk }}">{{ cierre.fecha|date:"d/m/Y" }} {% if cierre.evento %}— {{ cierre.evento.nombre }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Solo para pedidos extraordinarios.</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Observaciones</label>
+                                <textarea name="observaciones" class="form-control" rows="3" placeholder="Notas adicionales..."></textarea>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items del pedido -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Productos solicitados</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm" id="tabla-items">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Proveedor</th>
+                                        <th>Producto</th>
+                                        <th>Cant.</th>
+                                        <th>Precio ref.</th>
+                                        <th>Método pago</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="filas-items">
+                                    <tr class="fila-item">
+                                        <td><input type="text" name="proveedor" class="form-control form-control-sm" placeholder="Ej: DYM"></td>
+                                        <td>
+                                            <select name="producto_id" class="form-control form-control-sm" required>
+                                                <option value="">— Producto —</option>
+                                                {% for cat, productos in grupos_productos.items %}
+                                                <optgroup label="{{ cat }}">
+                                                    {% for p in productos %}
+                                                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td><input type="number" name="cantidad_solicitada" class="form-control form-control-sm" min="1" value="1"></td>
+                                        <td><input type="number" name="precio_referencial" class="form-control form-control-sm" step="0.01" min="0" value="0"></td>
+                                        <td>
+                                            <select name="metodo_pago" class="form-control form-control-sm">
+                                                {% for valor, nombre in metodos %}
+                                                <option value="{{ valor }}">{{ nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-danger btn-sm btn-eliminar-fila"><i class="fas fa-times"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" id="btn-agregar-fila" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-plus mr-1"></i> Agregar producto
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{% url 'compras:lista_pedidos' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left mr-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save mr-1"></i> Crear pedido
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+// Mostrar/ocultar cierre para extraordinarios
+document.getElementById('selectTipo').addEventListener('change', function() {
+    document.getElementById('divCierre').style.display =
+        this.value === 'extraordinario' ? 'block' : 'none';
+});
+
+const opcionesProductos = `{% for cat, productos in grupos_productos.items %}<optgroup label="{{ cat }}">{% for p in productos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}</optgroup>{% endfor %}`;
+const opcionesMetodos = `{% for valor, nombre in metodos %}<option value="{{ valor }}">{{ nombre }}</option>{% endfor %}`;
+
+function ultimoProveedor() {
+    const filas = document.querySelectorAll('.fila-item input[name="proveedor"]');
+    if (filas.length === 0) return '';
+    return filas[filas.length - 1].value || '';
+}
+
+document.getElementById('btn-agregar-fila').addEventListener('click', function() {
+    const tbody = document.getElementById('filas-items');
+    const fila = document.createElement('tr');
+    fila.className = 'fila-item';
+    fila.innerHTML = `
+        <td><input type="text" name="proveedor" class="form-control form-control-sm" placeholder="Ej: DYM" value="${ultimoProveedor()}"></td>
+        <td>
+            <select name="producto_id" class="form-control form-control-sm" required>
+                <option value="">— Producto —</option>
+                ${opcionesProductos}
+            </select>
+        </td>
+        <td><input type="number" name="cantidad_solicitada" class="form-control form-control-sm" min="1" value="1"></td>
+        <td><input type="number" name="precio_referencial" class="form-control form-control-sm" step="0.01" min="0" value="0"></td>
+        <td>
+            <select name="metodo_pago" class="form-control form-control-sm">
+                ${opcionesMetodos}
+            </select>
+        </td>
+        <td><button type="button" class="btn btn-danger btn-sm btn-eliminar-fila"><i class="fas fa-times"></i></button></td>
+    `;
+    tbody.appendChild(fila);
+    // Hacer foco en el campo producto de la nueva fila
+    fila.querySelector('select[name="producto_id"]').focus();
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.btn-eliminar-fila')) {
+        const filas = document.querySelectorAll('.fila-item');
+        if (filas.length > 1) {
+            e.target.closest('.fila-item').remove();
+        }
+    }
+});
+</script>
+
+{% endblock %}

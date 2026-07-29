@@ -3,7 +3,16 @@
 
 <div class="content-header">
     <div class="container-fluid">
-        <h1 class="m-0 text-dark">Registrar Compra</h1>
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-6">
+                <h1 class="m-0 text-dark">Registrar Compra</h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a href="{% url 'compras:lista_pedidos' %}" class="btn btn-secondary">
+                    <i class="fas fa-list mr-1"></i> Ver Pedidos
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -11,56 +20,118 @@
     <div class="container-fluid">
         <div class="row">
 
-            <!-- Formulario de compra -->
+            <!-- Formulario -->
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Nueva compra — {{ fecha_actual }}</h3>
                     </div>
-                    <form method="post" id="form-compra">
+                    <form method="post" id="form-compra" novalidate>
                         {% csrf_token %}
                         <div class="card-body">
 
-                            <div class="form-group">
-                                <label>Observaciones</label>
-                                <textarea name="observaciones" class="form-control" rows="2" placeholder="Opcional"></textarea>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Pedido asociado</label>
+                                    <select name="pedido_id" class="form-control">
+                                        <option value="">— Sin pedido asociado —</option>
+                                        {% for pedido in pedidos_activos %}
+                                        <option value="{{ pedido.id }}"
+                                            {% if request.GET.pedido == pedido.id|stringformat:"s" %}selected{% endif %}>
+                                            #{{ pedido.id }} — {{ pedido.get_tipo_display }} ({{ pedido.fecha_solicitud|date:"d/m/Y" }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Proveedor</label>
+                                    <input type="text" name="proveedor" class="form-control" placeholder="Ej: DYM, Gran Catador...">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Método de pago</label>
+                                    <select name="metodo_pago" class="form-control">
+                                        {% for valor, nombre in metodos %}
+                                        <option value="{{ valor }}">{{ nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Observaciones</label>
+                                    <input type="text" name="observaciones" class="form-control" placeholder="Opcional">
+                                </div>
                             </div>
 
                             <hr>
                             <h5>Productos comprados</h5>
 
-                            <div id="filas-productos">
-                                <!-- Fila inicial -->
-                                <div class="fila-producto form-row align-items-center mb-2">
-                                    <div class="col-md-5">
-                                        <select name="producto_id" class="form-control" required>
-                                            <option value="">— Seleccione insumo —</option>
-                                            {% for producto in productos %}
-                                            <option value="{{ producto.id }}">{{ producto.nombre }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <input type="number" name="cantidad" class="form-control" placeholder="Cantidad" min="1" required>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <input type="number" name="precio_unitario" class="form-control" placeholder="Precio Bs." min="0.01" step="0.01" required>
-                                    </div>
-                                    <div class="col-md-1">
-                                        <button type="button" class="btn btn-danger btn-sm btn-eliminar-fila">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <table class="table table-sm" id="tabla-compra">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="width:30px;"></th>
+                                        <th>Producto / Descripción</th>
+                                        <th style="width:100px;">Cantidad</th>
+                                        <th style="width:130px;">Precio unit. (bs)</th>
+                                        <th style="width:40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="filas-productos">
+                                    <tr class="fila-producto">
+                                        <td>
+                                            <input type="hidden" name="tipo_fila[]" value="insumo">
+                                            <div class="custom-control custom-checkbox mt-1">
+                                                <input type="checkbox" class="custom-control-input chk-operativo" id="op_0" name="es_operativo[]">
+                                                <label class="custom-control-label" for="op_0" title="Gasto operativo"></label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <!-- Insumo (visible por defecto) -->
+                                            <div class="div-insumo">
+                                                <select name="producto_id[]" class="form-control form-control-sm">
+                                                    <option value="">— Seleccione insumo —</option>
+                                                    {% for cat, productos in grupos_productos.items %}
+                                                    <optgroup label="{{ cat }}">
+                                                        {% for p in productos %}
+                                                        <option value="{{ p.id }}">{{ p.nombre }}</option>
+                                                        {% endfor %}
+                                                    </optgroup>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <!-- Gasto operativo (oculto por defecto) -->
+                                            <div class="div-operativo d-none">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" name="descripcion_op[]" class="form-control form-control-sm" placeholder="Descripción (ej: Detergente, Taxi...)">
+                                                    <select name="categoria_op[]" class="form-control form-control-sm" style="max-width:130px;">
+                                                        <option value="limpieza">Limpieza</option>
+                                                        <option value="logistica">Logística</option>
+                                                        <option value="alimentacion">Alimentación</option>
+                                                        <option value="mantenimiento">Mantenimiento</option>
+                                                        <option value="otro">Otro</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><input type="number" name="cantidad[]" class="form-control form-control-sm" min="0.01" step="0.01" value="1" required></td>
+                                        <td><input type="number" name="precio_unitario[]" class="form-control form-control-sm" step="0.01" min="0.01" required></td>
+                                        <td>
+                                            <button type="button" class="btn btn-danger btn-sm btn-eliminar-fila">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
 
-                            <button type="button" id="btn-agregar-fila" class="btn btn-outline-success btn-sm mt-2">
-                                <i class="fas fa-plus mr-1"></i> Agregar otro producto
+                            <button type="button" id="btn-agregar-fila" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-plus mr-1"></i> Agregar producto
                             </button>
 
                         </div>
                         <div class="card-footer d-flex justify-content-between">
-                            <a href="{% url 'usuarios:inicio' %}" class="btn btn-secondary">
+                            <a href="{% url 'compras:lista_pedidos' %}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left mr-1"></i> Cancelar
                             </a>
                             <button type="submit" class="btn btn-primary">
@@ -71,7 +142,7 @@
                 </div>
             </div>
 
-            <!-- Compras del dia -->
+            <!-- Compras recientes -->
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">
@@ -80,16 +151,20 @@
                     <div class="card-body p-0">
                         {% for compra in compras_recientes %}
                         <div class="p-2 border-bottom">
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <strong>Compra #{{ compra.id }}</strong>
-                                    <small class="text-muted d-block">{{ compra.personal.username }}</small>
+                                    {% if compra.proveedor %}<small class="text-muted ml-1">{{ compra.proveedor }}</small>{% endif %}
+                                    {% if compra.pedido %}<span class="badge badge-secondary ml-1">Pedido #{{ compra.pedido.id }}</span>{% endif %}
+                                    <span class="badge {% if compra.metodo_pago == 'efectivo' %}badge-success{% elif compra.metodo_pago == 'transferencia' %}badge-info{% else %}badge-warning{% endif %} ml-1">
+                                        {{ compra.get_metodo_pago_display }}
+                                    </span>
                                     {% for detalle in compra.detalles.all %}
-                                    <small class="d-block">{{ detalle.cantidad_botellas }} x {{ detalle.producto.nombre }} — Bs. {{ detalle.precio_unitario }}</small>
+                                    <small class="d-block text-muted">{{ detalle.cantidad_botellas }} × {{ detalle.producto.nombre }} — Bs. {{ detalle.precio_unitario }}</small>
                                     {% endfor %}
                                 </div>
                                 <div class="text-right">
-                                    <strong>Bs. {{ compra.total }}</strong>
+                                    <strong>{{ compra.total|floatformat:2 }} bs</strong>
                                     <form method="post" action="{% url 'compras:eliminar_compra' compra.id %}" class="d-block mt-1">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-danger btn-xs"
@@ -110,38 +185,81 @@
         </div>
     </div>
 </section>
-
+<!-- REEMPLAZAR EL BLOQUE <script> AL FINAL DEL TEMPLATE CON ESTO -->
 <script>
-// Template de fila de producto
-const productosOptions = `{% for producto in productos %}<option value="{{ producto.id }}">{{ producto.nombre }}</option>{% endfor %}`;
-
+let filaCount = 1;
+ 
+const opcionesProductos = `{% for cat, productos in grupos_productos.items %}<optgroup label="{{ cat }}">{% for p in productos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}</optgroup>{% endfor %}`;
+ 
+function toggleOperativo(checkbox) {
+    const fila = checkbox.closest('tr');
+    const divInsumo = fila.querySelector('.div-insumo');
+    const divOp = fila.querySelector('.div-operativo');
+    const hiddenTipo = fila.querySelector('input[name="tipo_fila[]"]');
+    if (checkbox.checked) {
+        divInsumo.classList.add('d-none');
+        divOp.classList.remove('d-none');
+        fila.querySelector('select[name="producto_id[]"]').value = '';
+        hiddenTipo.value = 'operativo';
+    } else {
+        divInsumo.classList.remove('d-none');
+        divOp.classList.add('d-none');
+        fila.querySelector('input[name="descripcion_op[]"]').value = '';
+        hiddenTipo.value = 'insumo';
+    }
+}
+ 
+// Listener para checkboxes existentes
+document.querySelectorAll('.chk-operativo').forEach(chk => {
+    chk.addEventListener('change', function() { toggleOperativo(this); });
+});
+ 
 document.getElementById('btn-agregar-fila').addEventListener('click', function() {
-    const contenedor = document.getElementById('filas-productos');
-    const fila = document.createElement('div');
-    fila.className = 'fila-producto form-row align-items-center mb-2';
+    const tbody = document.getElementById('filas-productos');
+    const id = filaCount++;
+    const fila = document.createElement('tr');
+    fila.className = 'fila-producto';
     fila.innerHTML = `
-        <div class="col-md-5">
-            <select name="producto_id" class="form-control" required>
-                <option value="">— Seleccione insumo —</option>
-                ${productosOptions}
-            </select>
-        </div>
-        <div class="col-md-3">
-            <input type="number" name="cantidad" class="form-control" placeholder="Cantidad" min="1" required>
-        </div>
-        <div class="col-md-3">
-            <input type="number" name="precio_unitario" class="form-control" placeholder="Precio Bs." min="0.01" step="0.01" required>
-        </div>
-        <div class="col-md-1">
+        <td>
+            <div class="custom-control custom-checkbox mt-1">
+                <input type="hidden" name="tipo_fila[]" value="insumo">
+                <input type="checkbox" class="custom-control-input chk-operativo" id="op_${id}" name="es_operativo[]">
+                <label class="custom-control-label" for="op_${id}" title="Gasto operativo"></label>
+            </div>
+        </td>
+        <td>
+            <div class="div-insumo">
+                <select name="producto_id[]" class="form-control form-control-sm">
+                    <option value="">— Seleccione insumo —</option>
+                    ${opcionesProductos}
+                </select>
+            </div>
+            <div class="div-operativo d-none">
+                <div class="input-group input-group-sm">
+                    <input type="text" name="descripcion_op[]" class="form-control form-control-sm" placeholder="Descripción (ej: Detergente, Taxi...)">
+                    <select name="categoria_op[]" class="form-control form-control-sm" style="max-width:130px;">
+                        <option value="limpieza">Limpieza</option>
+                        <option value="logistica">Logística</option>
+                        <option value="alimentacion">Alimentación</option>
+                        <option value="mantenimiento">Mantenimiento</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+            </div>
+        </td>
+        <td><input type="number" name="cantidad[]" class="form-control form-control-sm" min="0.01" step="0.01" value="1" required></td>
+        <td><input type="number" name="precio_unitario[]" class="form-control form-control-sm" step="0.01" min="0.01" required></td>
+        <td>
             <button type="button" class="btn btn-danger btn-sm btn-eliminar-fila">
                 <i class="fas fa-times"></i>
             </button>
-        </div>
+        </td>
     `;
-    contenedor.appendChild(fila);
+    tbody.appendChild(fila);
+    fila.querySelector('.chk-operativo').addEventListener('change', function() { toggleOperativo(this); });
+    fila.querySelector('select[name="producto_id[]"]').focus();
 });
-
-// Eliminar fila
+ 
 document.addEventListener('click', function(e) {
     if (e.target.closest('.btn-eliminar-fila')) {
         const filas = document.querySelectorAll('.fila-producto');
