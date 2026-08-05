@@ -21,7 +21,4 @@ urlpatterns = [
     path('barra/', views.vista_barra, name='vista_barra'),
     path('barra/comandas.json/', views.comandas_pendientes_json, name='comandas_pendientes_json'),
 
-    # Consolidaciones
-    path('consolidaciones/', views.lista_consolidaciones, name='lista_consolidaciones'),
-    path('consolidacion/<int:pk>/', views.detalle_consolidacion, name='detalle_consolidacion'),
 ]

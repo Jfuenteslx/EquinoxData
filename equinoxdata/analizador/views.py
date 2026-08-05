@@ -12,7 +12,7 @@ from .evaluacion import (
     calcular_performance_promedio,
     generar_recomendacion_compra,
 )
-from ventas.models import Consolidacion
+
 from inventarios.models import Inventario
 
 

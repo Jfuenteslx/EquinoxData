@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from productos.models import ProductoMenu
-from .models import SesionTrabajo, Comanda, ItemComanda, Consolidacion
+from .models import SesionTrabajo, Comanda, ItemComanda
 from .forms import ComandaForm, ItemComandaForm
 
 
@@ -98,7 +98,6 @@ def sesion_activa(request, pk):
 @login_required
 @require_POST
 def cerrar_sesion(request, pk):
-    """Cierra la sesión y genera la consolidación."""
     sesion = get_object_or_404(SesionTrabajo, pk=pk)
 
     if sesion.usuario != request.user:
@@ -109,19 +108,16 @@ def cerrar_sesion(request, pk):
         messages.warning(request, 'Esta sesión ya está cerrada.')
         return redirect('ventas:lista_sesiones')
 
-# Verificar que no hay comandas pendientes o en proceso
     comandas_pendientes = sesion.comandas.filter(
         estado__in=['pendiente', 'lista']
     ).count()
 
     if comandas_pendientes > 0:
-        messages.error(
-            request,
-            f'No puede cerrar la sesión con {comandas_pendientes} comanda(s) sin cobrar.'
-        )
+        messages.error(request,
+            f'No puede cerrar la sesión con {comandas_pendientes} comanda(s) pendiente(s).')
         return redirect('ventas:sesion_activa', pk=pk)
 
-    # Actualizar inventario al cerrar sesión
+    # Actualizar inventario
     _actualizar_inventario_sesion(sesion)
 
     # Cerrar sesión
@@ -129,23 +125,11 @@ def cerrar_sesion(request, pk):
     sesion.fecha_cierre = timezone.now()
     sesion.save()
 
-    # Buscar cierre diario del día
-    cierre_diario = None
-    try:
-        from cuentas.models import CierreDiario
-        from datetime import date
-        cierre_diario = CierreDiario.objects.filter(
-            fecha=date.today(),
-            estado='borrador'
-        ).first()
-    except Exception:
-        pass
-
-    # Crear consolidación
-    consolidacion = Consolidacion.crear_desde_sesion(sesion, cierre_diario)
-
-    messages.success(request, f'Sesión cerrada. Total de ventas: {consolidacion.total_ventas} bs.')
-    return redirect('ventas:detalle_consolidacion', pk=consolidacion.pk)
+    messages.success(
+        request,
+        f'Sesión cerrada. Total de ventas: {sesion.total_ventas} bs.'
+    )
+    return redirect('ventas:lista_sesiones')
 
 
 def _actualizar_inventario_sesion(sesion):
@@ -451,43 +435,3 @@ def comandas_pendientes_json(request):
         })
 
     return JsonResponse({'comandas': data})
-
-
-# ------------------------------------------------------------------ #
-# CONSOLIDACION                                                        #
-# ------------------------------------------------------------------ #
-
-@login_required
-def detalle_consolidacion(request, pk):
-    """Resumen de ventas de una sesión cerrada."""
-    consolidacion = get_object_or_404(Consolidacion, pk=pk)
-
-    if consolidacion.sesion.usuario != request.user and \
-       request.user.rol not in ['administrador', 'jefe_barra']:
-        messages.error(request, 'No tiene permisos para ver esta consolidación.')
-        return redirect('ventas:lista_sesiones')
-
-    comandas = consolidacion.sesion.comandas.exclude(
-        estado='anulada'
-    ).prefetch_related('items__producto').order_by('-creada_en')
-
-    return render(request, 'ventas/detalle_consolidacion.html', {
-        'consolidacion': consolidacion,
-        'comandas': comandas,
-    })
-
-
-@login_required
-def lista_consolidaciones(request):
-    """Lista de consolidaciones — vista para administración."""
-    if request.user.rol not in ['administrador', 'jefe_barra']:
-        messages.error(request, 'No tiene permisos para acceder a esta sección.')
-        return redirect('usuarios:inicio')
-
-    consolidaciones = Consolidacion.objects.select_related(
-        'sesion__usuario', 'sesion__evento'
-    ).order_by('-fecha_consolidacion')
-
-    return render(request, 'ventas/lista_consolidaciones.html', {
-        'consolidaciones': consolidaciones,
-    })

@@ -13,12 +13,11 @@ class CasoHistorico(models.Model):
         related_name='casos_historicos'
     )
     sesion = models.ForeignKey(
-        'ventas.Consolidacion',
-        on_delete=models.CASCADE,
-        related_name='casos_historicos',
-        null=True,
-        blank=True
-    )
+        'ventas.SesionTrabajo',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='casos_historicos'
+)
 
     # Parametros del evento
     tipo_evento = models.CharField(max_length=255, default='Concierto')
