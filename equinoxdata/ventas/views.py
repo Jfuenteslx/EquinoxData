@@ -125,6 +125,27 @@ def cerrar_sesion(request, pk):
     sesion.fecha_cierre = timezone.now()
     sesion.save()
 
+    # Crear EntregaPuntoVenta automáticamente en el cierre diario
+    try:
+        from cuentas.models import CierreDiario, EntregaPuntoVenta
+        from datetime import date
+        cierre_diario = CierreDiario.objects.filter(
+            fecha=date.today(),
+            estado='borrador'
+        ).first()
+
+        if cierre_diario:
+            EntregaPuntoVenta.objects.get_or_create(
+                cierre=cierre_diario,
+                usuario=sesion.usuario,
+                es_barra=sesion.es_barra,
+                defaults={
+                    'total_talonario': sesion.total_ventas,
+                }
+            )
+    except Exception as e:
+        pass  # No bloquear el cierre si falla la integración
+
     messages.success(
         request,
         f'Sesión cerrada. Total de ventas: {sesion.total_ventas} bs.'
@@ -139,7 +160,7 @@ def _actualizar_inventario_sesion(sesion):
 
     items_cobrados = ItemComanda.objects.filter(
         comanda__sesion=sesion,
-        comanda__estado='cobrada'
+        comanda__estado='entregada'  # era 'cobrada'
     ).select_related('producto__insumo_base', 'producto')
 
     for item in items_cobrados:
