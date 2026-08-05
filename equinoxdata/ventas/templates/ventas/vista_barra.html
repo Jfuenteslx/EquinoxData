@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-6">
+                <h1 class="m-0">
+                    <i class="fas fa-glass-martini-alt mr-2"></i>Vista Barra
+                    {% if evento_hoy %}
+                    <small class="text-muted">— {{ evento_hoy.nombre }}</small>
+                    {% endif %}
+                </h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <span class="badge badge-success" id="indicador-conexion">
+                    <i class="fas fa-circle mr-1"></i> En vivo
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        {% if not evento_hoy %}
+        <div class="alert alert-warning">
+            No hay ningún evento registrado para hoy.
+        </div>
+        {% else %}
+
+        <div id="contenedor-comandas">
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-sync fa-spin fa-2x mb-3"></i>
+                <p>Cargando comandas...</p>
+            </div>
+        </div>
+
+        {% endif %}
+
+    </div>  
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Polling cada 10 segundos
+function actualizarComandas() {
+    fetch("{% url 'ventas:comandas_pendientes_json' %}")
+        .then(r => r.json())
+        .then(data => {
+            const contenedor = document.getElementById('contenedor-comandas');
+            if (data.comandas.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+                        <p>Sin comandas pendientes.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '<div class="row">';
+            data.comandas.forEach(c => {
+                html += `
+                <div class="col-md-4 mb-3">
+                    <div class="card card-warning">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                #${c.id} — ${c.mesero}
+                                ${c.referencia !== '—' ? `<small class="ml-2">${c.referencia}</small>` : ''}
+                            </h3>
+                            <div class="card-tools">
+                                <small>${c.creada_en}</small>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <ul class="list-unstyled mb-2">
+                                ${c.items.map(i => `<li><strong>${i.cantidad}</strong> × ${i.producto}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="card-footer p-1">
+                            <form method="post" action="/ventas/comanda/${c.id}/lista/">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-success btn-block btn-sm">
+                                    <i class="fas fa-check mr-1"></i> Marcar lista
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            contenedor.innerHTML = html;
+        })
+        .catch(() => {
+            document.getElementById('indicador-conexion').className = 'badge badge-danger';
+            document.getElementById('indicador-conexion').innerHTML = '<i class="fas fa-circle mr-1"></i> Sin conexión';
+        });
+}
+
+// Actualizar inmediatamente y luego cada 10 segundos
+actualizarComandas();
+setInterval(actualizarComandas, 10000);
+</script>
+{% endblock %}

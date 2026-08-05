@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-6">
+                <h1 class="m-0">Mis Sesiones</h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a href="{% url 'ventas:abrir_sesion' %}" class="btn btn-primary">
+                    <i class="fas fa-play mr-1"></i> Abrir sesión
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm">
+                    <thead class="bg-dark text-white">
+                        <tr>
+                            <th>Evento</th>
+                            <th>Tipo</th>
+                            <th>Apertura</th>
+                            <th>Cierre</th>
+                            <th>Estado</th>
+                            <th class="text-right">Total ventas</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sesion in sesiones %}
+                        <tr>
+                            <td><strong>{{ sesion.evento.nombre }}</strong></td>
+                            <td>
+                                {% if sesion.es_barra %}
+                                <span class="badge badge-dark">Barra</span>
+                                {% else %}
+                                <span class="badge badge-info">Mesero</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ sesion.fecha_apertura|date:"d/m/Y H:i" }}</td>
+                            <td>{{ sesion.fecha_cierre|date:"d/m/Y H:i"|default:"—" }}</td>
+                            <td>
+                                {% if sesion.estado == 'abierta' %}
+                                <span class="badge badge-success">Abierta</span>
+                                {% else %}
+                                <span class="badge badge-secondary">Cerrada</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right"><strong>{{ sesion.total_ventas|floatformat:2 }} bs</strong></td>
+                            <td>
+                                {% if sesion.estado == 'abierta' %}
+                                <a href="{% url 'ventas:sesion_activa' sesion.pk %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-arrow-right"></i> Continuar
+                                </a>
+                                {% else %}
+                                <a href="{% url 'ventas:detalle_consolidacion' sesion.consolidacion.pk %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> Ver resumen
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                No hay sesiones registradas. <a href="{% url 'ventas:abrir_sesion' %}">Abrir una sesión</a>.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

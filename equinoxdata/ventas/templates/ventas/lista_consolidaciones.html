@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Consolidaciones</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm">
+                    <thead class="bg-dark text-white">
+                        <tr>
+                            <th>Evento</th>
+                            <th>Usuario</th>
+                            <th>Tipo</th>
+                            <th>Fecha cierre</th>
+                            <th class="text-center">Comandas</th>
+                            <th class="text-right">Total ventas</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in consolidaciones %}
+                        <tr>
+                            <td>{{ c.sesion.evento.nombre }}</td>
+                            <td>{{ c.sesion.usuario.username }}</td>
+                            <td>
+                                {% if c.sesion.es_barra %}
+                                <span class="badge badge-dark">Barra</span>
+                                {% else %}
+                                <span class="badge badge-info">Mesero</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.fecha_consolidacion|date:"d/m/Y H:i" }}</td>
+                            <td class="text-center">{{ c.total_comandas }}</td>
+                            <td class="text-right"><strong>{{ c.total_ventas|floatformat:2 }} bs</strong></td>
+                            <td>
+                                <a href="{% url 'ventas:detalle_consolidacion' c.pk %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No hay consolidaciones registradas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Abrir Sesión de Trabajo</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">Nueva sesión</h3>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="card-body">
+
+                            <div class="form-group">
+                                <label>Evento de hoy <span class="text-danger">*</span></label>
+                                <select name="evento" class="form-control" required>
+                                    <option value="">— Seleccionar evento —</option>
+                                    {% for evento in eventos %}
+                                    <option value="{{ evento.pk }}">{{ evento.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% if not eventos %}
+                                <small class="text-danger">No hay eventos registrados para hoy.</small>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="esBarra" name="es_barra" value="1">
+                                    <label class="custom-control-label" for="esBarra">Soy barra</label>
+                                </div>
+                                <small class="text-muted">Activar si vas a operar desde barra.</small>
+                            </div>
+
+                        </div>
+                        <div class="card-footer d-flex justify-content-between">
+                            <a href="{% url 'ventas:lista_sesiones' %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary" {% if not eventos %}disabled{% endif %}>
+                                <i class="fas fa-play mr-1"></i> Abrir sesión
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

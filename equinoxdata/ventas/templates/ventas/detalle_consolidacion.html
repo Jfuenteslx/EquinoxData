@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-6">
+                <h1 class="m-0">Resumen de sesión</h1>
+                <small class="text-muted">{{ consolidacion.sesion.evento.nombre }} — {{ consolidacion.sesion.usuario.username }}</small>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a href="{% url 'ventas:lista_sesiones' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left mr-1"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+
+            <!-- Resumen -->
+            <div class="col-md-4">
+                <div class="card card-outline card-success">
+                    <div class="card-header">
+                        <h3 class="card-title">Totales</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td>Comandas cobradas</td>
+                                <td class="text-right"><strong>{{ consolidacion.total_comandas }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Comandas anuladas</td>
+                                <td class="text-right text-danger">{{ consolidacion.total_anuladas }}</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Total ventas</strong></td>
+                                <td class="text-right"><strong>{{ consolidacion.total_ventas|floatformat:2 }} bs</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Apertura</td>
+                                <td class="text-right">{{ consolidacion.sesion.fecha_apertura|date:"H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Cierre</td>
+                                <td class="text-right">{{ consolidacion.sesion.fecha_cierre|date:"H:i" }}</td>
+                            </tr>
+                            {% if consolidacion.cierre_diario %}
+                            <tr>
+                                <td>Cierre diario</td>
+                                <td class="text-right">
+                                    <a href="{% url 'cuentas:detalle_cierre' consolidacion.cierre_diario.pk %}">
+                                        {{ consolidacion.cierre_diario.fecha|date:"d/m/Y" }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de comandas -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Detalle de comandas</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Referencia</th>
+                                    <th>Productos</th>
+                                    <th>Estado</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comanda in comandas %}
+                                <tr>
+                                    <td>{{ comanda.id }}</td>
+                                    <td>{{ comanda.referencia|default:"—" }}</td>
+                                    <td>
+                                        {% for item in comanda.items.all %}
+                                        <small>{{ item.cantidad }} × {{ item.producto.nombre }}</small>
+                                        {% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if comanda.estado == 'cobrada' %}badge-success{% else %}badge-danger{% endif %}">
+                                            {{ comanda.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-right">{{ comanda.total|floatformat:2 }} bs</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-secondary">
+                                <tr>
+                                    <td colspan="4"><strong>Total</strong></td>
+                                    <td class="text-right"><strong>{{ consolidacion.total_ventas|floatformat:2 }} bs</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -14,10 +14,12 @@ class CierreDiario(models.Model):
     ]
 
     fecha = models.DateField(unique=True)
+
     evento = models.ForeignKey(
         'eventos.Evento',
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
+        on_delete=models.PROTECT,
+        null=False,
+        blank=False,
         related_name='cierres'
     )
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='borrador')

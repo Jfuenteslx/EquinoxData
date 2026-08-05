@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-6">
+                <h1 class="m-0">
+                    {% if sesion.es_barra %}
+                    <i class="fas fa-glass-martini-alt mr-2"></i>Barra
+                    {% else %}
+                    <i class="fas fa-user mr-2"></i>{{ sesion.usuario.username }}
+                    {% endif %}
+                    <small class="text-muted">— {{ sesion.evento.nombre }}</small>
+                </h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                {% if not sesion.es_barra %}
+                <span id="indicador-listas" class="badge badge-secondary mr-2" style="font-size:.85rem; display:none;">
+                    <i class="fas fa-bell mr-1"></i> <span id="count-listas">0</span> lista(s) para recoger
+                </span>
+                {% endif %}
+                <form method="post" action="{% url 'ventas:cerrar_sesion' sesion.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('¿Cerrar sesión? Asegurese de no tener comandas pendientes.')">
+                        <i class="fas fa-stop mr-1"></i> Cerrar sesión
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+
+            <!-- Nueva comanda -->
+            <div class="col-md-5">
+
+                <!-- Alerta de comandas listas -->
+                {% if not sesion.es_barra %}
+                <div id="alerta-listas" style="display:none;">
+                    <div class="alert alert-success alert-dismissible">
+                        <i class="fas fa-bell mr-2"></i>
+                        <strong>¡Hay comandas listas para recoger!</strong>
+                        <button type="button" class="close" onclick="document.getElementById('alerta-listas').style.display='none'">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-plus mr-2"></i>Nueva comanda</h3>
+                    </div>
+                    <form method="post" action="{% url 'ventas:crear_comanda' sesion.pk %}" id="form-comanda" novalidate>
+                        {% csrf_token %}
+                        <div class="card-body">
+                            <div class="form-group">
+                                <input type="text" name="referencia" class="form-control"
+                                    placeholder="Referencia (Mesa 3, Cumpleañero...) — opcional">
+                            </div>
+                            <table class="table table-sm" id="tabla-items">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th style="width:80px;">Cant.</th>
+                                        <th style="width:30px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="filas-items">
+                                    <tr class="fila-item">
+                                        <td>
+                                            <select name="producto_id[]" class="form-control form-control-sm" required>
+                                                <option value="">— Seleccionar —</option>
+                                                {% for tipo, productos in grupos_productos.items %}
+                                                <optgroup label="{{ tipo }}">
+                                                    {% for p in productos %}
+                                                    <option value="{{ p.id }}">{{ p.nombre }} — Bs. {{ p.precio }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="cantidad[]" class="form-control form-control-sm" min="1" value="1" required>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-danger btn-sm btn-eliminar">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" id="btn-agregar" class="btn btn-outline-success btn-sm btn-block">
+                                <i class="fas fa-plus mr-1"></i> Agregar producto
+                            </button>
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-paper-plane mr-1"></i>
+                                {% if sesion.es_barra %}Registrar venta{% else %}Enviar a barra{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Resumen rápido -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Resumen de sesión</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td>Comandas entregadas</td>
+                                <td class="text-right"><strong>{{ sesion.total_comandas }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Comandas anuladas</td>
+                                <td class="text-right text-danger">{{ sesion.total_anuladas }}</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Total ventas</strong></td>
+                                <td class="text-right"><strong>{{ sesion.total_ventas|floatformat:2 }} bs</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de comandas -->
+            <div class="col-md-7">
+
+                <!-- Comandas listas para recoger (solo meseros) -->
+                {% if not sesion.es_barra %}
+                <div id="seccion-listas" style="display:none;">
+                    <div class="card card-success">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-check-circle mr-2"></i>Listas para recoger</h3>
+                        </div>
+                        <div class="card-body p-0" id="lista-comandas-listas">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Todas las comandas de la sesión -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Comandas de la sesión</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        {% for comanda in comandas %}
+                        <div class="p-2 border-bottom {% if comanda.estado == 'lista' %}bg-success-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>#{{ comanda.id }}</strong>
+                                    {% if comanda.referencia %}
+                                    <span class="text-muted ml-1">— {{ comanda.referencia }}</span>
+                                    {% endif %}
+                                    <small class="text-muted ml-2">{{ comanda.creada_en|date:"H:i" }}</small>
+                                    <br>
+                                    {% for item in comanda.items.all %}
+                                    <small>{{ item.cantidad }} × {{ item.producto.nombre }}</small>
+                                    {% if not forloop.last %}<small> | </small>{% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div class="text-right">
+                                    <strong>{{ comanda.total|floatformat:2 }} bs</strong>
+                                    <br>
+                                    <span class="badge
+                                        {% if comanda.estado == 'pendiente' %}badge-warning
+                                        {% elif comanda.estado == 'lista' %}badge-success
+                                        {% elif comanda.estado == 'entregada' %}badge-primary
+                                        {% else %}badge-danger{% endif %}">
+                                        {{ comanda.get_estado_display }}
+                                    </span>
+                                    <div class="mt-1">
+                                        {% if comanda.estado == 'lista' %}
+                                        <form method="post" action="{% url 'ventas:marcar_entregada' comanda.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button class="btn btn-xs btn-primary">
+                                                <i class="fas fa-check mr-1"></i>Entregar
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        {% if comanda.estado != 'entregada' and comanda.estado != 'anulada' %}
+                                        <button class="btn btn-xs btn-danger ml-1" data-toggle="modal"
+                                            data-target="#modalAnular{{ comanda.pk }}">Anular</button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal anular -->
+                        <div class="modal fade" id="modalAnular{{ comanda.pk }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title">Anular Comanda #{{ comanda.pk }}</h5>
+                                        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                                    </div>
+                                    <form method="post" action="{% url 'ventas:anular_comanda' comanda.pk %}">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <p>¿Motivo de la anulación?</p>
+                                            <input type="text" name="motivo" class="form-control" placeholder="Motivo (opcional)">
+                                            <small class="text-muted">Solo barra o administración puede autorizar anulaciones.</small>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-danger">Confirmar anulación</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-center text-muted py-4">No hay comandas en esta sesión.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const opcionesProductos = `{% for tipo, productos in grupos_productos.items %}<optgroup label="{{ tipo }}">{% for p in productos %}<option value="{{ p.id }}">{{ p.nombre }} - Bs. {{ p.precio }}</option>{% endfor %}</optgroup>{% endfor %}`;
+
+// Agregar filas de productos
+document.getElementById('btn-agregar').addEventListener('click', function() {
+    const tbody = document.getElementById('filas-items');
+    const fila = document.createElement('tr');
+    fila.className = 'fila-item';
+    fila.innerHTML = `
+        <td>
+            <select name="producto_id[]" class="form-control form-control-sm" required>
+                <option value="">— Seleccionar —</option>
+                ${opcionesProductos}
+            </select>
+        </td>
+        <td><input type="number" name="cantidad[]" class="form-control form-control-sm" min="1" value="1" required></td>
+        <td><button type="button" class="btn btn-danger btn-sm btn-eliminar"><i class="fas fa-times"></i></button></td>
+    `;
+    tbody.appendChild(fila);
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.btn-eliminar')) {
+        const filas = document.querySelectorAll('.fila-item');
+        if (filas.length > 1) {
+            e.target.closest('.fila-item').remove();
+        }
+    }
+});
+
+{% if not sesion.es_barra %}
+// Polling de comandas listas para el mesero
+let comandasListasAnteriores = 0;
+
+function verificarComandasListas() {
+    fetch("{% url 'ventas:comandas_listas_json' sesion.pk %}")
+        .then(r => r.json())
+        .then(data => {
+            const cantidad = data.comandas.length;
+            const indicador = document.getElementById('indicador-listas');
+            const seccion = document.getElementById('seccion-listas');
+            const alerta = document.getElementById('alerta-listas');
+            const lista = document.getElementById('lista-comandas-listas');
+
+            if (cantidad > 0) {
+                // Mostrar indicador
+                indicador.style.display = 'inline-block';
+                indicador.className = 'badge badge-success mr-2';
+                document.getElementById('count-listas').textContent = cantidad;
+
+                // Mostrar sección
+                seccion.style.display = 'block';
+
+                // Mostrar alerta solo si llegó una nueva
+                if (cantidad > comandasListasAnteriores) {
+                    alerta.style.display = 'block';
+                }
+
+                // Renderizar lista
+                let html = '';
+                data.comandas.forEach(c => {
+                    html += `
+                    <div class="p-2 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>#${c.id}</strong>
+                                ${c.referencia !== '—' ? `<span class="text-muted ml-1">— ${c.referencia}</span>` : ''}
+                                <br>
+                                ${c.items.map(i => `<small>${i.cantidad} × ${i.producto}</small>`).join(' | ')}
+                            </div>
+                            <div class="text-right">
+                                <strong>${c.total} bs</strong>
+                                <br>
+                                <form method="post" action="/ventas/comanda/${c.id}/entregada/" class="d-inline">
+                                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-xs btn-primary mt-1">
+                                        <i class="fas fa-check mr-1"></i>Entregar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                lista.innerHTML = html;
+            } else {
+                indicador.style.display = 'none';
+                seccion.style.display = 'none';
+                alerta.style.display = 'none';
+            }
+
+            comandasListasAnteriores = cantidad;
+        });
+}
+
+// Verificar inmediatamente y cada 8 segundos
+verificarComandasListas();
+setInterval(verificarComandasListas, 8000);
+{% endif %}
+</script>
+{% endblock %}

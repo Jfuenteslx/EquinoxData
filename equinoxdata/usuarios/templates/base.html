@@ -88,7 +88,7 @@
                         </a>
                     </li>
 
-                    <!-- Ventas - todos los roles -->
+                   <!-- Ventas - todos los roles -->
                     {% if user.tiene_acceso_ventas %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
@@ -97,15 +97,27 @@
                         </a>
                         <ul class="nav nav-treeview">
                             <li class="nav-item">
-                                <a href="{% url 'ventas:registrar_venta' %}" class="nav-link">
+                                <a href="{% url 'ventas:abrir_sesion' %}" class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Comandas</p>
+                                    <p>Abrir sesión</p>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{% url 'ventas:ventas_totales_del_dia' %}" class="nav-link">
+                                <a href="{% url 'ventas:lista_sesiones' %}" class="nav-link">
                                     <i class="far fa-circle nav-icon"></i>
-                                    <p>Consolidar</p>
+                                    <p>Mis sesiones</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'ventas:vista_barra' %}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Vista barra</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'ventas:lista_consolidaciones' %}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Consolidaciones</p>
                                 </a>
                             </li>
                         </ul>

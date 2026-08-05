@@ -35,6 +35,10 @@ def crear_cierre(request):
         return redirect('usuarios:inicio')
 
     if request.method == 'POST':
+        evento_id = request.POST.get('evento') or None
+        if not evento_id:
+            messages.error(request, 'Debe seleccionar un evento para crear el cierre.')
+            return redirect('cuentas:crear_cierre')
         fecha = request.POST.get('fecha')
         evento_id = request.POST.get('evento') or None
         caja_inicial = request.POST.get('caja_inicial', 0) or 0
