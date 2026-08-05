@@ -45,10 +45,14 @@ class CierreDiario(models.Model):
 
     @property
     def total_ventas(self):
-        """Suma de talonarios declarados por todos los puntos de venta."""
-        return self.entregas_punto_venta.aggregate(
-            total=models.Sum('total_talonario')
-        )['total'] or Decimal('0')
+        """Suma de ventas declaradas por todos los puntos de venta."""
+        total = Decimal('0')
+        for entrega in self.entregas_punto_venta.all():
+            if entrega.total_talonario is not None:
+                total += entrega.total_talonario
+            else:
+                total += entrega.total_entregado
+        return total
 
     @property
     def total_efectivo(self):

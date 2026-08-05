@@ -112,6 +112,21 @@ def cerrar_cierre(request, pk):
     if request.method == 'POST':
         cierre.estado = 'cerrado'
         cierre.save()
+
+        # Crear movimiento automático de reposición de caja chica
+        from decimal import Decimal
+        reposicion = cierre.total_ventas * Decimal('0.01')
+        if reposicion > 0:
+            MovimientoCajaChica.objects.get_or_create(
+                cierre=cierre,
+                concepto='Reposición automática 1% ventas',
+                tipo='ingreso',
+                defaults={
+                    'monto': reposicion,
+                    'registrado_por': request.user,
+                }
+            )
+
         messages.success(request, f'Cierre del {cierre.fecha} cerrado correctamente.')
     return redirect('cuentas:detalle_cierre', pk=pk)
 
