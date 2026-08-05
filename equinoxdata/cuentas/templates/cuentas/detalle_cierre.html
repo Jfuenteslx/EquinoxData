@@ -189,6 +189,16 @@
                                 <td><strong>TOTAL NETO</strong></td>
                                 <td class="text-right"><strong>{{ cierre.total_neto|floatformat:2 }} bs</strong></td>
                             </tr>
+                            <tr>
+                                <td class="text-success"><strong>Saldo efectivo → dueño</strong></td>
+                                <td class="text-right text-success"><strong>{{ cierre.saldo_efectivo_dueno|floatformat:2 }} bs</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-info"><strong>Saldo QR → dueño</strong></td>
+                                <td class="text-right text-info"><strong>{{ cierre.saldo_qr_dueno|floatformat:2 }} bs</strong></td>
+                            </tr>
+
+
                         </table>
                     </div>
                 </div>
@@ -245,6 +255,68 @@
                         </form>
                     </div>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- FLUJO DE CAJA -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card card-outline card-success">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-money-bill-wave mr-2"></i>Flujo Efectivo</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td>+ Efectivo ventas</td>
+                                <td class="text-right">{{ cierre.total_efectivo|floatformat:2 }} bs</td>
+                            </tr>
+                            <tr>
+                                <td>− Sueldos</td>
+                                <td class="text-right text-danger">{{ cierre.total_sueldos|floatformat:2 }} bs</td>
+                            </tr>
+                            <tr>
+                                <td>− Egresos grandes efectivo</td>
+                                <td class="text-right text-danger">
+                                    {{ cierre.egresos_grandes.filter.metodo_pago|default:"0.00" }} bs
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>− Reposición caja chica</td>
+                                <td class="text-right text-danger">{{ cierre.reposicion_caja_chica|floatformat:2 }} bs</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Saldo a entregar al dueño</strong></td>
+                                <td class="text-right"><strong>{{ cierre.saldo_efectivo_dueno|floatformat:2 }} bs</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card card-outline card-info">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-qrcode mr-2"></i>Flujo QR</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td>+ QR ventas</td>
+                                <td class="text-right">{{ cierre.total_qr|floatformat:2 }} bs</td>
+                            </tr>
+
+                            <tr>
+                                <td>− Egresos grandes transferencia</td>
+                                <td class="text-right text-danger">{{ cierre.total_egresos_transferencia|floatformat:2 }} bs</td>
+                            </tr>
+                            <tr class="table-info">
+                                <td><strong>Saldo QR a depositar</strong></td>
+                                <td class="text-right"><strong>{{ cierre.saldo_qr_dueno|floatformat:2 }} bs</strong></td>
+                            </tr>
+
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

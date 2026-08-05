@@ -39,6 +39,44 @@ class CierreDiario(models.Model):
     def __str__(self):
         return f"Cierre {self.fecha}"
 
+    @property
+    def saldo_efectivo_dueno(self):
+        """
+        Efectivo disponible para entregar al dueño.
+        = Efectivo de ventas - Sueldos - Egresos grandes efectivo - Reposición caja chica
+        """
+        egresos_efectivo = self.egresos_grandes.filter(
+            metodo_pago='efectivo'
+        ).aggregate(total=models.Sum('monto'))['total'] or Decimal('0')
+
+        return (
+            self.total_efectivo
+            - self.total_sueldos
+            - egresos_efectivo
+            - self.reposicion_caja_chica
+        )
+
+    @property
+    def saldo_qr_dueno(self):
+        """
+        QRs disponibles para entregar al dueño.
+        = QRs de ventas - Egresos grandes por transferencia
+        """
+        egresos_transferencia = self.egresos_grandes.filter(
+            metodo_pago='transferencia'
+        ).aggregate(total=models.Sum('monto'))['total'] or Decimal('0')
+
+        return (
+            self.total_qr
+            - egresos_transferencia
+        )
+    @property
+    def total_egresos_transferencia(self):
+        return self.egresos_grandes.filter(
+            metodo_pago='transferencia'
+        ).aggregate(total=models.Sum('monto'))['total'] or Decimal('0')
+
+    
     # ------------------------------------------------------------------ #
     # Ingresos                                                             #
     # ------------------------------------------------------------------ #
