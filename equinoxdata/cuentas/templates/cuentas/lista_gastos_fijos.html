@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-6">
+                <h1 class="m-0">Gastos Fijos</h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <a href="{% url 'cuentas:agregar_gasto_fijo' %}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-1"></i> Registrar gasto fijo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm">
+                    <thead class="bg-dark text-white">
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Descripción</th>
+                            <th>Período</th>
+                            <th>Fecha pago</th>
+                            <th>Método</th>
+                            <th class="text-right">Monto</th>
+                            <th>Registrado por</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gasto in gastos %}
+                        <tr>
+                            <td><strong>{{ gasto.get_concepto_display }}</strong></td>
+                            <td>{{ gasto.descripcion|default:"—" }}</td>
+                            <td>{{ gasto.periodo_mes }}/{{ gasto.periodo_anio }}</td>
+                            <td>{{ gasto.fecha_pago|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge {% if gasto.metodo_pago == 'efectivo' %}badge-success{% else %}badge-info{% endif %}">
+                                    {{ gasto.get_metodo_pago_display }}
+                                </span>
+                            </td>
+                            <td class="text-right"><strong>{{ gasto.monto|floatformat:2 }} bs</strong></td>
+                            <td>{{ gasto.registrado_por.username|default:"—" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'cuentas:eliminar_gasto_fijo' gasto.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-xs btn-danger" onclick="return confirm('¿Eliminar este gasto fijo?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                No hay gastos fijos registrados.
+                                <a href="{% url 'cuentas:agregar_gasto_fijo' %}">Registrar el primero</a>.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Registrar Gasto Fijo</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">Nuevo gasto fijo</h3>
+                    </div>
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <div class="card-body">
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Concepto <span class="text-danger">*</span></label>
+                                    <select name="concepto" class="form-control" id="selectConcepto" required>
+                                        <option value="">— Seleccionar —</option>
+                                        {% for valor, nombre in concepto_choices %}
+                                        <option value="{{ valor }}">{{ nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6" id="divConceptoOtro" style="display:none;">
+                                    <label>Descripción del concepto</label>
+                                    <input type="text" name="concepto_otro" class="form-control" placeholder="Especificar concepto">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Descripción adicional</label>
+                                <input type="text" name="descripcion" class="form-control" placeholder="Ej: Factura #123, mes de julio...">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Monto (bs) <span class="text-danger">*</span></label>
+                                    <input type="number" name="monto" class="form-control" step="0.01" min="0.01" required>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Método de pago</label>
+                                    <select name="metodo_pago" class="form-control">
+                                        {% for valor, nombre in metodo_choices %}
+                                        <option value="{{ valor }}">{{ nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Fecha de pago <span class="text-danger">*</span></label>
+                                <input type="date" name="fecha_pago" class="form-control" required>
+                                <small class="text-muted">El período (mes/año) se calculará automáticamente desde esta fecha.</small>
+                            </div>
+
+                        </div>
+                        <div class="card-footer d-flex justify-content-between">
+                            <a href="{% url 'cuentas:lista_gastos_fijos' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left mr-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save mr-1"></i> Registrar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block extra_scripts %}
+<script>
+document.getElementById('selectConcepto').addEventListener('change', function() {
+    document.getElementById('divConceptoOtro').style.display =
+        this.value === 'otro' ? 'block' : 'none';
+});
+</script>
+{% endblock %}
+
+{% endblock %}
