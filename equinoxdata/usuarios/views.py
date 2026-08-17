@@ -24,12 +24,51 @@ def login_view(request):
 
 @login_required
 def inicio_view(request):
+    from datetime import date
+    from ventas.models import SesionTrabajo
+    from inventarios.models import Inventario
+    from compras.models import Pedido
+    from cuentas.models import CierreDiario
+
     hoy = date.today()
+
+    # Eventos
     eventos_proximos = Evento.objects.filter(fecha__gte=hoy).order_by('fecha')[:3]
     eventos_pasados = Evento.objects.filter(fecha__lt=hoy).order_by('-fecha')[:6]
+
+    # Sesiones activas hoy
+    sesiones_activas = SesionTrabajo.objects.filter(
+        estado='abierta',
+        fecha_apertura__date=hoy
+    ).select_related('usuario', 'evento')
+
+    # Ventas del día
+    total_ventas_hoy = sum(s.total_ventas for s in sesiones_activas)
+
+    # Cierre diario de hoy
+    cierre_hoy = CierreDiario.objects.filter(fecha=hoy).first()
+
+    # Stock crítico (botellas <= 2)
+    stock_critico = Inventario.objects.filter(
+        botellas__lte=2,
+        botellas__gte=0,
+        producto__habilitado=True
+    ).select_related('producto').order_by('botellas')[:5]
+
+    # Pedidos activos
+    pedidos_activos = Pedido.objects.filter(
+        estado__in=['borrador', 'aprobado', 'en_proceso']
+    ).order_by('-fecha_solicitud')[:5]
+
     return render(request, 'usuarios/dashboard.html', {
         'eventos_proximos': eventos_proximos,
         'eventos_pasados': eventos_pasados,
+        'sesiones_activas': sesiones_activas,
+        'total_ventas_hoy': total_ventas_hoy,
+        'cierre_hoy': cierre_hoy,
+        'stock_critico': stock_critico,
+        'pedidos_activos': pedidos_activos,
+        'hoy': hoy,
     })
 
 

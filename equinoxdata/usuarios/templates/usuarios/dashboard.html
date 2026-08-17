@@ -1,118 +1,240 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
-
 {% block content %}
+
 <div class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0 text-dark">Bienvenid@ {{ user.username }}!</h1>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="m-0">Inicio</h1>
+                <small style="color: var(--eq-text-3); font-size: 12px;">
+                    {{ hoy|date:"l d \d\e F \d\e Y" }}
+                </small>
+            </div>
+            <div class="d-flex gap-2" style="gap: 8px;">
+                {% if not cierre_hoy %}
+                <a href="{% url 'cuentas:crear_cierre' %}" class="btn btn-primary btn-sm">
+                    <i class="ti ti-plus mr-1"></i> Nuevo cierre
+                </a>
+                {% else %}
+                <a href="{% url 'cuentas:detalle_cierre' cierre_hoy.pk %}" class="btn btn-secondary btn-sm">
+                    <i class="ti ti-calculator mr-1"></i> Ver cierre de hoy
+                </a>
+                {% endif %}
+                <a href="{% url 'ventas:abrir_sesion' %}" class="btn btn-primary btn-sm">
+                    <i class="ti ti-player-play mr-1"></i> Abrir sesión
+                </a>
             </div>
         </div>
     </div>
 </div>
 
 <section class="content">
-    <div class="row">
-        <div class="col-sm-9">
+    <div class="container-fluid">
 
-            <div class="alert alert-info alert-dismissible">
-                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                <h5><i class="icon fas fa-info"></i> Atención!</h5>
-                Hola! Bienvenido a Equinoxdata. Si encontrás algún problema o error dentro del sistema,
-                avisá lo antes posible para que pueda solucionarse.
-                <br><br>Gracias!
+        <!-- MÉTRICAS SUPERIORES -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card card-border-green">
+                    <div class="card-body py-3">
+                        <div style="font-size:10px; font-weight:600; color:var(--eq-text-3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;">Ventas hoy</div>
+                        <div style="font-size:24px; font-weight:700; color:var(--eq-green);">{{ total_ventas_hoy|floatformat:2 }} bs</div>
+                        <div style="font-size:11px; color:var(--eq-text-3); margin-top:4px;">
+                            {{ sesiones_activas.count }} sesión{{ sesiones_activas.count|pluralize:"es" }} activa{{ sesiones_activas.count|pluralize:"s" }}
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <div class="row">
-                <div class="container mt-3">
-
-                    <!-- Próximos Eventos -->
-                    <h3 class="text-center mb-4">Próximos Eventos</h3>
-                    {% if eventos_proximos %}
-                    <div class="row d-flex flex-wrap justify-content-center">
-                        {% for evento in eventos_proximos %}
-                        <div class="col-12 col-md-6 col-lg-4 mb-4">
-                            <div class="card shadow-sm h-100">
-                                {% if evento.flyer %}
-                                <img src="{{ evento.flyer.url }}" class="card-img-top" alt="Flyer de {{ evento.nombre }}">
-                                {% else %}
-                                <img src="{% static 'img/logo_equi.jpg' %}" class="card-img-top" alt="Sin flyer">
-                                {% endif %}
-                                <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title font-weight-bold">{{ evento.nombre }}</h5>
-                                    <p class="card-text text-muted mb-2">
-                                        <i class="fas fa-calendar-alt"></i> {{ evento.fecha }}
-                                    </p>
-                                    {% if user.tiene_acceso_analizador %}
-                                    <div class="mt-auto">
-                                        <a href="{% url 'analizador:entrada' %}" class="btn btn-primary w-100">
-                                            Realizar análisis
-                                        </a>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
+            <div class="col-md-3">
+                <div class="card card-border-blue">
+                    <div class="card-body py-3">
+                        <div style="font-size:10px; font-weight:600; color:var(--eq-text-3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;">Neto operacional</div>
+                        <div style="font-size:24px; font-weight:700; color:var(--eq-accent);">
+                            {% if cierre_hoy %}{{ cierre_hoy.total_neto|floatformat:2 }} bs{% else %}—{% endif %}
                         </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="text-center text-muted">No hay próximos eventos.</p>
-                    {% endif %}
-
-                    <!-- Últimos Eventos Pasados -->
-                    <h3 class="text-center mt-5 mb-4">Últimos Eventos Pasados</h3>
-                    {% if eventos_pasados %}
-                    <div class="row">
-                        {% for evento in eventos_pasados %}
-                        <div class="col-12 col-md-6 col-lg-4 mb-4">
-                            <div class="card shadow-sm">
-                                {% if evento.flyer %}
-                                <img src="{{ evento.flyer.url }}" class="card-img-top" alt="Flyer de {{ evento.nombre }}">
-                                {% else %}
-                                <img src="{% static 'img/logo_equi.jpg' %}" class="card-img-top" alt="Sin flyer">
-                                {% endif %}
-                                <div class="card-body">
-                                    <h5 class="card-title font-weight-bold">{{ evento.nombre }}</h5>
-                                    <p class="card-text text-muted mb-2">
-                                        <i class="fas fa-calendar-alt"></i> {{ evento.fecha }}
-                                    </p>
-                                    {% if user.tiene_acceso_analizador %}
-                                    <a href="{% url 'analizador:entrada' %}" class="btn btn-primary">
-                                        Revisar resultados
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </div>
+                        <div style="font-size:11px; color:var(--eq-text-3); margin-top:4px;">
+                            {% if cierre_hoy %}Después de sueldos y gastos{% else %}Sin cierre registrado hoy{% endif %}
                         </div>
-                        {% endfor %}
                     </div>
-                    {% else %}
-                    <p class="text-center text-muted">No hay eventos pasados.</p>
-                    {% endif %}
-
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card {% if stock_critico %}card-border-red{% else %}card-border-green{% endif %}">
+                    <div class="card-body py-3">
+                        <div style="font-size:10px; font-weight:600; color:var(--eq-text-3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;">Stock crítico</div>
+                        <div style="font-size:24px; font-weight:700; color:{% if stock_critico %}var(--eq-red){% else %}var(--eq-green){% endif %};">{{ stock_critico.count }}</div>
+                        <div style="font-size:11px; color:var(--eq-text-3); margin-top:4px;">
+                            {% if stock_critico %}Productos bajo mínimo{% else %}Stock en orden{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card {% if pedidos_activos %}card-border-amber{% else %}card-border-gray{% endif %}">
+                    <div class="card-body py-3">
+                        <div style="font-size:10px; font-weight:600; color:var(--eq-text-3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;">Pedidos activos</div>
+                        <div style="font-size:24px; font-weight:700; color:{% if pedidos_activos %}var(--eq-amber){% else %}var(--eq-text-2){% endif %};">{{ pedidos_activos.count }}</div>
+                        <div style="font-size:11px; color:var(--eq-text-3); margin-top:4px;">En proceso esta semana</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Widget de fecha -->
-        <div class="col-sm-3">
-            <div class="small-box bg-success">
-                <div class="inner">
-                    <div class="date">
-                        <div class="datecont">
-                            <h3><div id="date"></div></h3>
-                            <div id="month"></div>
-                            <div class="text-bold" id="day"></div>
-                        </div>
+        <div class="row">
+
+            <!-- SESIONES ACTIVAS + PRÓXIMOS EVENTOS -->
+            <div class="col-md-8">
+
+                <!-- Sesiones activas -->
+                <div class="card card-border-blue mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="card-title">
+                            <i class="ti ti-users mr-2" style="color:var(--eq-accent);"></i>
+                            Sesiones activas hoy
+                        </span>
+                        <a href="{% url 'ventas:lista_sesiones' %}" class="btn btn-secondary btn-sm">Ver todas</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Tipo</th>
+                                    <th>Evento</th>
+                                    <th>Apertura</th>
+                                    <th class="text-right">Ventas</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sesion in sesiones_activas %}
+                                <tr>
+                                    <td class="primary-cell">{{ sesion.usuario.get_full_name|default:sesion.usuario.username }}</td>
+                                    <td>
+                                        {% if sesion.es_barra %}
+                                        <span class="badge badge-dark"><i class="ti ti-glass-full mr-1"></i>Barra</span>
+                                        {% else %}
+                                        <span class="badge badge-info"><i class="ti ti-user mr-1"></i>Mesero</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="color:var(--eq-text-2); font-size:12px;">{{ sesion.evento.nombre|truncatechars:30 }}</td>
+                                    <td style="color:var(--eq-text-3); font-size:12px;">{{ sesion.fecha_apertura|date:"H:i" }}</td>
+                                    <td class="text-right primary-cell">{{ sesion.total_ventas|floatformat:2 }} bs</td>
+                                    <td>
+                                        <a href="{% url 'ventas:sesion_activa' sesion.pk %}" class="btn btn-secondary btn-sm">
+                                            <i class="ti ti-arrow-right"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4" style="color:var(--eq-text-3);">
+                                        <i class="ti ti-moon" style="font-size:24px; display:block; margin-bottom:8px; opacity:.4;"></i>
+                                        No hay sesiones activas hoy.
+                                        <a href="{% url 'ventas:abrir_sesion' %}" style="color:var(--eq-accent);">Abrir una sesión</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-calendar"></i>
+
+                <!-- Próximos eventos -->
+                <div class="card card-border-gray">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="card-title">
+                            <i class="ti ti-calendar-event mr-2" style="color:var(--eq-text-3);"></i>
+                            Próximos eventos
+                        </span>
+                        <a href="{% url 'eventos:listar_eventos' %}" class="btn btn-secondary btn-sm">Ver todos</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% for evento in eventos_proximos %}
+                        <div style="padding:12px 16px; border-bottom:1px solid var(--eq-border); display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:13px; font-weight:600; color:var(--eq-text-1);">{{ evento.nombre|truncatechars:50 }}</div>
+                                <div style="font-size:11px; color:var(--eq-text-3); margin-top:2px;">
+                                    <i class="ti ti-calendar mr-1"></i>{{ evento.fecha|date:"d/m/Y" }}
+                                </div>
+                            </div>
+                            <span class="badge badge-primary">Próximo</span>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4" style="color:var(--eq-text-3);">
+                            <i class="ti ti-calendar-off" style="font-size:24px; display:block; margin-bottom:8px; opacity:.4;"></i>
+                            No hay próximos eventos registrados.
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
+
+            </div>
+
+            <!-- PANEL DERECHO -->
+            <div class="col-md-4">
+
+                <!-- Stock crítico -->
+                <div class="card card-border-red mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="card-title">
+                            <i class="ti ti-alert-triangle mr-2" style="color:var(--eq-red);"></i>
+                            Stock crítico
+                        </span>
+                        <a href="{% url 'inventarios:inventario_list' %}" class="btn btn-secondary btn-sm">Ver inventario</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% for inv in stock_critico %}
+                        <div style="padding:10px 16px; border-bottom:1px solid var(--eq-border); display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:13px; color:var(--eq-text-1); font-weight:500;">{{ inv.producto.nombre }}</div>
+                            <span class="badge {% if inv.botellas == 0 %}badge-danger{% else %}badge-warning{% endif %}">
+                                {{ inv.botellas }} bot.
+                            </span>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-3" style="color:var(--eq-text-3); font-size:13px;">
+                            <i class="ti ti-circle-check" style="color:var(--eq-green); font-size:20px; display:block; margin-bottom:6px;"></i>
+                            Stock en orden
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Pedidos activos -->
+                <div class="card card-border-amber">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="card-title">
+                            <i class="ti ti-shopping-cart mr-2" style="color:var(--eq-amber);"></i>
+                            Pedidos activos
+                        </span>
+                        <a href="{% url 'compras:lista_pedidos' %}" class="btn btn-secondary btn-sm">Ver todos</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% for pedido in pedidos_activos %}
+                        <div style="padding:10px 16px; border-bottom:1px solid var(--eq-border); display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:13px; font-weight:600; color:var(--eq-text-1);">#{{ pedido.id }} — {{ pedido.get_tipo_display }}</div>
+                                <div style="font-size:11px; color:var(--eq-text-3);">{{ pedido.fecha_solicitud|date:"d/m/Y" }}</div>
+                            </div>
+                            <div class="text-right">
+                                <span class="badge {% if pedido.estado == 'aprobado' %}badge-success{% elif pedido.estado == 'en_proceso' %}badge-warning{% else %}badge-secondary{% endif %}">
+                                    {{ pedido.get_estado_display }}
+                                </span>
+                                <div style="font-size:12px; color:var(--eq-text-2); margin-top:2px;">{{ pedido.total_referencial|floatformat:0 }} bs</div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-3" style="color:var(--eq-text-3); font-size:13px;">
+                            No hay pedidos activos.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
             </div>
         </div>
 
     </div>
 </section>
+
 {% endblock %}

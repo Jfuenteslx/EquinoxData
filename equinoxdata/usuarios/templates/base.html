@@ -18,6 +18,8 @@
     <link rel="stylesheet" href="{% static 'plugins/summernote/summernote-bs4.css' %}">
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/equinox.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 </head>
 <body class="hold-transition sidebar-mini layout-fixed" onload="startTime()">
 <div class="wrapper">
@@ -57,9 +59,9 @@
 
     <!-- Sidebar -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
-        <a href="{% url 'usuarios:inicio' %}" class="brand-link">
+        <a href="{% url 'inicio' %}" class="brand-link">
             <img src="{% static 'img/navba_logo3.png' %}" alt="Logo" class="brand-image img-circle elevation-1" style="opacity:.8">
-            <span class="brand-text font-weight-bold"><strong>EQUINOCCIO</strong></span>
+            <span class="brand-text font-weight-bold"><strong>EQUINOXdata</strong></span>
         </a>
 
         <div class="sidebar">
@@ -82,8 +84,8 @@
 
                     <!-- Inicio - todos -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'usuarios:inicio' %}">
-                            <i class="nav-icon fas fa-home"></i>
+                        <a class="nav-link" href="{% url 'inicio' %}">
+                            <i class="nav-icon ti ti-home"></i>
                             <p>Inicio</p>
                         </a>
                     </li>
@@ -92,7 +94,7 @@
                     {% if user.tiene_acceso_ventas %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-cash-register"></i>
+                            <i class="nav-icon ti ti-cash register"></i>
                             <p>Ventas <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -122,7 +124,7 @@
                      {% if user.tiene_acceso_inventarios %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-boxes"></i>
+                            <i class="nav-icon ti ti-package"></i>
                             <p>Inventario <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -153,7 +155,7 @@
                     {% if user.tiene_acceso_compras %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-shopping-cart"></i>
+                            <i class="nav-icon ti ti-shopping-cart"></i>
                             <p>Compras <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -183,7 +185,7 @@
                     {% if user.tiene_acceso_compras %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-wine-bottle"></i>
+                            <i class="nav-icon ti ti-bottle"></i>
                             <p>Productos <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -207,7 +209,7 @@
                     {% if user.tiene_acceso_compras %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-calendar-check"></i>
+                            <i class="nav-icon ti ti-calendar-event"></i>
                             <p>Eventos <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -223,7 +225,7 @@
                     {% if user.tiene_acceso_compras %}
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-calculator"></i>
+                            <i class="nav-icon ti ti-calculator"></i>
                             <p>Cuentas <i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -265,7 +267,7 @@
                     {% if user.tiene_acceso_usuarios %}
                     <li class="nav-item">
                         <a href="{% url 'usuarios:administrar_usuarios' %}" class="nav-link">
-                            <i class="nav-icon fas fa-users"></i>
+                            <i class="nav-icon ti ti-users"></i>
                             <p>Personal</p>
                         </a>
                     </li>
@@ -306,12 +308,9 @@
     </div>
     <!-- /.content-wrapper -->
 
-    <footer class="main-footer">
-        <strong>Copyright &copy; 2026 <a href="https://www.facebook.com/equinocciobolivia">equinocciobolivia</a>.</strong>
-        All rights reserved.
-        <div class="float-right d-none d-sm-inline-block">
-            <b>Version</b> 0.2
-        </div>
+    <footer class="main-footer" style="background: var(--eq-surface); border-top: 1px solid var(--eq-border); color: var(--eq-text-3); font-family: 'Inter', sans-serif; font-size: 12px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <span>Copyright &copy; 2026 <a href="#" style="color: var(--eq-accent);">equinocciobolivia</a>.</span>
+        <span style="color: var(--eq-text-3);">EquinoxData v0.2</span>
     </footer>
 
 </div>

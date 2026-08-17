@@ -3,10 +3,12 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
+from usuarios.views import inicio_view  # agregar este import
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('usuarios:login')),
+    path('inicio/', inicio_view, name='inicio'),  # agregar esta línea
     path('usuarios/', include('usuarios.urls')),
     path('inventarios/', include('inventarios.urls')),
     path('productos/', include('productos.urls', namespace='productos')),
