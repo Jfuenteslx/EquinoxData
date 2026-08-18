@@ -44,4 +44,11 @@ urlpatterns = [
     path('resumenes/', views.lista_resumenes, name='lista_resumenes'),
     path('resumenes/nuevo/', views.crear_resumen, name='crear_resumen'),
     path('resumenes/<int:pk>/', views.detalle_resumen, name='detalle_resumen'),
+
+    # Comprobantes QR
+    path('entregas/<int:entrega_pk>/qr/agregar/', views.agregar_comprobante_qr, name='agregar_comprobante_qr'),
+    path('qr/<int:pk>/eliminar/', views.eliminar_comprobante_qr, name='eliminar_comprobante_qr'),
+
+    # Tiempo real
+    path('<int:pk>/resumen.json/', views.resumen_tiempo_real, name='resumen_tiempo_real'),
 ]

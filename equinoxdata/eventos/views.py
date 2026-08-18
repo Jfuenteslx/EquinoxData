@@ -3,9 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from django.utils.timezone import now
-from .models import Evento, Cover
-from .forms import EventoForm, CoverForm
-
+from .models import Evento, EntradaCover
 
 @login_required
 def listar_eventos(request):
@@ -81,46 +79,8 @@ def eliminar_evento(request, pk):
     return render(request, 'eventos/eliminar_evento.html', {'evento': evento})
 
 
-@login_required
 def crear_cover(request, evento_id):
-    if not request.user.tiene_acceso_compras():
-        messages.error(request, 'No tiene  permisos para crear covers.')
-        return redirect('usuarios:inicio')
-    evento = get_object_or_404(Evento, pk=evento_id)
-    if request.method == 'POST':
-        form = CoverForm(request.POST)
-        if form.is_valid():
-            cover = form.save(commit=False)
-            cover.save()
-            messages.success(request, 'Cover creado correctamente.')
-            return redirect('eventos:listar_eventos')
-        else:
-            messages.error(request, 'Error al crear el cover. Revise los datos.')
-    else:
-        form = CoverForm()
-    return render(request, 'eventos/crear_cover.html', {
-        'form': form,
-        'evento': evento
-    })
+    return redirect('eventos:listar_eventos')
 
-
-@login_required
 def editar_cover(request, cover_id):
-    if not request.user.tiene_acceso_compras():
-        messages.error(request, 'No tiene  permisos para editar covers.')
-        return redirect('usuarios:inicio')
-    cover = get_object_or_404(Cover, pk=cover_id)
-    if request.method == 'POST':
-        form = CoverForm(request.POST, instance=cover)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Cover actualizado correctamente.')
-            return redirect('eventos:listar_eventos')
-        else:
-            messages.error(request, 'Error al actualizar el cover. Revise los datos.')
-    else:
-        form = CoverForm(instance=cover)
-    return render(request, 'eventos/editar_cover.html', {
-        'form': form,
-        'cover': cover
-    })
+    return redirect('eventos:listar_eventos')

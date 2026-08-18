@@ -571,3 +571,28 @@ class ResumenSemanal(models.Model):
             'gastos_fijos': gastos_fijos,
             'neto_real': neto_operacional - gastos_fijos,
         }
+
+
+class ComprobanteQR(models.Model):
+    """
+    Registro individual de pagos QR recibidos por un punto de venta.
+    Se ordenan cronológicamente para cruzar con extracto bancario.
+    """
+    entrega = models.ForeignKey(
+        EntregaPuntoVenta,
+        on_delete=models.CASCADE,
+        related_name='comprobantes_qr'
+    )
+    monto = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Comprobante QR"
+        verbose_name_plural = "Comprobantes QR"
+        ordering = ['creado_en']
+
+    def __str__(self):
+        return f"QR {self.monto} bs — {self.entrega.nombre_display()}"

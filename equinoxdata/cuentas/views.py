@@ -87,6 +87,15 @@ def detalle_cierre(request, pk):
     except Exception:
         pedidos_ext = []
 
+    # Sesiones del evento
+    try:
+        from ventas.models import SesionTrabajo
+        sesiones = SesionTrabajo.objects.filter(
+            evento=cierre.evento
+        ).select_related('usuario') if cierre.evento else []
+    except Exception:
+        sesiones = []
+        
     context = {
         'cierre': cierre,
         'otros_ingresos': cierre.otros_ingresos.all(),
@@ -98,7 +107,10 @@ def detalle_cierre(request, pk):
         'pedidos_ext': pedidos_ext,
         'usuarios_sistema': usuarios_sistema,
         'personal_sistema': personal_sistema,
+        'sesiones': sesiones,
     }
+
+
     return render(request, 'cuentas/detalle_cierre.html', context)
 
 
@@ -525,4 +537,111 @@ def detalle_resumen(request, pk):
         'resumen': resumen,
         'totales': resumen.calcular_totales(),
         'cierres': resumen.cierres.all().order_by('fecha'),
+    })
+
+# ------------------------------------------------------------------ #
+# COMPROBANTES QR                                                      #
+# ------------------------------------------------------------------ #
+
+@login_required
+def agregar_comprobante_qr(request, entrega_pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos.')
+        return redirect('usuarios:inicio')
+    entrega = get_object_or_404(EntregaPuntoVenta, pk=entrega_pk)
+    if request.method == 'POST':
+        from .models import ComprobanteQR
+        monto = request.POST.get('monto')
+        if monto:
+            ComprobanteQR.objects.create(
+                entrega=entrega,
+                monto=monto,
+            )
+            # Actualizar el total QR de la entrega
+            total_qr = entrega.comprobantes_qr.aggregate(
+                total=models.Sum('monto')
+            )['total'] or Decimal('0')
+            entrega.qr = total_qr
+            entrega.save()
+            messages.success(request, f'Comprobante QR de {monto} bs registrado.')
+    return redirect('cuentas:detalle_cierre', pk=entrega.cierre.pk)
+
+
+@login_required
+def eliminar_comprobante_qr(request, pk):
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos.')
+        return redirect('usuarios:inicio')
+    from .models import ComprobanteQR
+    comp = get_object_or_404(ComprobanteQR, pk=pk)
+    entrega = comp.entrega
+    comp.delete()
+    # Recalcular total QR
+    total_qr = entrega.comprobantes_qr.aggregate(
+        total=models.Sum('monto')
+    )['total'] or Decimal('0')
+    entrega.qr = total_qr
+    entrega.save()
+    messages.success(request, 'Comprobante eliminado.')
+    return redirect('cuentas:detalle_cierre', pk=entrega.cierre.pk)
+
+
+# ------------------------------------------------------------------ #
+# ENDPOINTS EN TIEMPO REAL                                             #
+# ------------------------------------------------------------------ #
+
+@login_required
+def resumen_tiempo_real(request, pk):
+    """Endpoint JSON para el resumen general en tiempo real."""
+    from django.http import JsonResponse
+    from django.db.models import Sum, Count
+    from ventas.models import ItemComanda, SesionTrabajo
+
+    cierre = get_object_or_404(CierreDiario, pk=pk)
+
+    # Ventas por hora
+    from django.db.models.functions import ExtractHour
+    ventas_por_hora = ItemComanda.objects.filter(
+        comanda__sesion__evento=cierre.evento,
+        comanda__estado='entregada'
+    ).annotate(
+        hora=ExtractHour('comanda__actualizada_en')
+    ).values('hora').annotate(
+        total=Sum(models.F('cantidad') * models.F('precio_unitario'),
+                  output_field=models.DecimalField())
+    ).order_by('hora')
+
+    # Top productos
+    top_productos = ItemComanda.objects.filter(
+        comanda__sesion__evento=cierre.evento,
+        comanda__estado='entregada'
+    ).values('producto__nombre').annotate(
+        total_vendido=Sum('cantidad')
+    ).order_by('-total_vendido')[:5]
+
+    # Sesiones activas
+    sesiones = SesionTrabajo.objects.filter(
+        evento=cierre.evento
+    ).select_related('usuario')
+
+    sesiones_data = []
+    for s in sesiones:
+        sesiones_data.append({
+            'usuario': s.usuario.get_full_name() or s.usuario.username,
+            'es_barra': s.es_barra,
+            'estado': s.estado,
+            'total_ventas': str(s.total_ventas),
+        })
+
+    return JsonResponse({
+        'total_ventas': str(cierre.total_ventas),
+        'total_neto': str(cierre.total_neto),
+        'total_sueldos': str(cierre.total_sueldos),
+        'total_egresos': str(cierre.total_egresos_grandes),
+        'reposicion_caja': str(cierre.reposicion_caja_chica),
+        'saldo_efectivo': str(cierre.saldo_efectivo_dueno),
+        'saldo_qr': str(cierre.saldo_qr_dueno),
+        'ventas_por_hora': list(ventas_por_hora),
+        'top_productos': list(top_productos),
+        'sesiones': sesiones_data,
     })

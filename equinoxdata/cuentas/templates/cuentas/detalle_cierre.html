@@ -1,855 +1,1182 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2 align-items-center">
-            <div class="col-sm-6">
-                <h1 class="m-0">
-                    Cierre del {{ cierre.fecha|date:"d/m/Y" }}
-                    {% if cierre.evento %}<small class="text-muted">— {{ cierre.evento.nombre }}</small>{% endif %}
-                </h1>
-            </div>
-            <div class="col-sm-6 text-right">
-                {% if cierre.estado == 'borrador' %}
-                <button class="btn btn-success" data-toggle="modal" data-target="#modalCerrar">
-                    <i class="fas fa-lock"></i> Cerrar noche
-                </button>
-                {% else %}
-                <span class="badge badge-success p-2"><i class="fas fa-lock"></i> Noche cerrada</span>
-                {% endif %}
-                <a href="{% url 'cuentas:lista_cierres' %}" class="btn btn-secondary ml-2">
-                    <i class="fas fa-arrow-left"></i> Volver
-                </a>
-            </div>
-        </div>
+
+<style>
+/* ── Cabecera cierre ─────────────────────────────────────────── */
+.eq-cierre-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 20px;
+  background: var(--eq-surface);
+  border-bottom: 1px solid var(--eq-border);
+}
+
+.eq-cierre-info { display: flex; gap: 16px; align-items: flex-start; }
+
+.eq-cierre-flyer {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--eq-border);
+  flex-shrink: 0;
+}
+
+.eq-cierre-flyer-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  background: var(--eq-surface-2);
+  border: 1px solid var(--eq-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--eq-text-3);
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.eq-cierre-title { font-size: 18px; font-weight: 700; color: var(--eq-text-1); }
+.eq-cierre-evento { font-size: 12px; color: var(--eq-text-2); margin-top: 2px; }
+.eq-cierre-estado { margin-top: 6px; }
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.eq-tabs {
+  display: flex;
+  background: var(--eq-surface);
+  border-bottom: 1px solid var(--eq-border);
+  overflow-x: auto;
+  padding: 0 16px;
+}
+
+.eq-tab {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--eq-text-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.eq-tab:hover { color: var(--eq-text-2); }
+.eq-tab.active { color: var(--eq-accent); border-bottom-color: var(--eq-accent); }
+
+/* ── Tab content ─────────────────────────────────────────────── */
+.eq-tab-content { display: none; padding: 20px; }
+.eq-tab-content.active { display: block; }
+
+/* ── Métricas resumen ────────────────────────────────────────── */
+.eq-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.eq-metric {
+  background: var(--eq-surface);
+  border: 1px solid var(--eq-border);
+  border-radius: var(--eq-radius);
+  padding: 16px;
+}
+
+.eq-metric.green { border-left: 3px solid var(--eq-green); }
+.eq-metric.blue  { border-left: 3px solid var(--eq-accent); }
+.eq-metric.amber { border-left: 3px solid var(--eq-amber); }
+.eq-metric.red   { border-left: 3px solid var(--eq-red); }
+.eq-metric.cyan  { border-left: 3px solid var(--eq-cyan); }
+
+.eq-metric-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--eq-text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+
+.eq-metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--eq-text-1);
+  line-height: 1;
+}
+
+.eq-metric-value.green { color: var(--eq-green); }
+.eq-metric-value.blue  { color: var(--eq-accent); }
+.eq-metric-value.amber { color: var(--eq-amber); }
+.eq-metric-value.red   { color: var(--eq-red); }
+.eq-metric-value.cyan  { color: var(--eq-cyan); }
+
+/* ── Gráfico ─────────────────────────────────────────────────── */
+.eq-chart-wrap {
+  background: var(--eq-surface);
+  border: 1px solid var(--eq-border);
+  border-radius: var(--eq-radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.eq-chart-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--eq-text-2);
+  margin-bottom: 12px;
+}
+
+/* ── Popup modal ─────────────────────────────────────────────── */
+.eq-popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+
+.eq-popup-overlay.active { display: flex; }
+
+.eq-popup {
+  background: var(--eq-surface);
+  border: 1px solid var(--eq-border-2);
+  border-radius: var(--eq-radius);
+  width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--eq-shadow);
+}
+
+.eq-popup-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--eq-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--eq-surface);
+}
+
+.eq-popup-title { font-size: 14px; font-weight: 700; color: var(--eq-text-1); }
+.eq-popup-close { color: var(--eq-text-3); cursor: pointer; font-size: 20px; background: none; border: none; }
+.eq-popup-body { padding: 20px; }
+.eq-popup-footer { padding: 14px 20px; border-top: 1px solid var(--eq-border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Indicador en vivo */
+.eq-live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--eq-green);
+}
+
+.eq-live-dot::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--eq-green);
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+</style>
+
+<!-- Cabecera -->
+<div class="eq-cierre-header">
+  <div class="eq-cierre-info">
+    {% if cierre.evento and cierre.evento.flyer %}
+    <img src="{{ cierre.evento.flyer.url }}" class="eq-cierre-flyer" alt="Flyer">
+    {% else %}
+    <div class="eq-cierre-flyer-placeholder"><i class="ti ti-calendar-event"></i></div>
+    {% endif %}
+    <div>
+      <div class="eq-cierre-title">Cierre del {{ cierre.fecha|date:"d/m/Y" }}</div>
+      <div class="eq-cierre-evento">
+        {% if cierre.evento %}{{ cierre.evento.nombre }}{% else %}Sin evento{% endif %}
+      </div>
+      <div class="eq-cierre-estado">
+        <span class="badge {% if cierre.estado == 'borrador' %}badge-warning{% else %}badge-success{% endif %}">
+          {{ cierre.get_estado_display }}
+        </span>
+      </div>
     </div>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <span class="eq-live-dot">En vivo</span>
+    {% if cierre.estado == 'borrador' %}
+    <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalCerrar">
+      <i class="ti ti-lock mr-1"></i> Cerrar noche
+    </button>
+    {% endif %}
+    <a href="{% url 'cuentas:lista_cierres' %}" class="btn btn-secondary btn-sm">
+      <i class="ti ti-arrow-left mr-1"></i> Volver
+    </a>
+  </div>
 </div>
 
-<section class="content">
-    <div class="container-fluid">
+<!-- Tabs -->
+<div class="eq-tabs">
+  <button class="eq-tab active" data-tab="resumen">Resumen General</button>
+  <button class="eq-tab" data-tab="ventas">Ventas e Ingresos</button>
+  <button class="eq-tab" data-tab="egresos">Egresos</button>
+  <button class="eq-tab" data-tab="sueldos">Sueldos</button>
+  <button class="eq-tab" data-tab="caja">Caja Chica</button>
+  <button class="eq-tab" data-tab="arqueos">Arqueos y Cierres</button>
+  <button class="eq-tab" data-tab="cover">Cover</button>
+</div>
 
-        <!-- CARDS SUPERIORES -->
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card card-outline card-success">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-arrow-up mr-2 text-success"></i>Total Ingresos</h3>
-                        <div class="card-tools">
-                            <span class="badge badge-success" style="font-size:1rem;">{{ cierre.total_ingresos|floatformat:2 }} bs</span>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td><i class="fas fa-money-bill-wave text-success mr-1"></i> Efectivo</td>
-                                <td class="text-right"><strong>{{ cierre.total_efectivo|floatformat:2 }} bs</strong></td>
-                            </tr>
-                            <tr>
-                                <td><i class="fas fa-qrcode text-info mr-1"></i> QR</td>
-                                <td class="text-right"><strong>{{ cierre.total_qr|floatformat:2 }} bs</strong></td>
-                            </tr>
-                            <tr>
-                                <td><i class="fas fa-university text-primary mr-1"></i> Vouchers</td>
-                                <td class="text-right"><strong>{{ cierre.total_voucher|floatformat:2 }} bs</strong></td>
-                            </tr>
-                            <tr class="table-secondary">
-                                <td><strong>Otros ingresos</strong></td>
-                                <td class="text-right"><strong>{{ cierre.total_otros_ingresos|floatformat:2 }} bs</strong></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
+<!-- ── TAB: RESUMEN GENERAL ──────────────────────────────────── -->
+<div class="eq-tab-content active" id="tab-resumen">
 
-            <div class="col-md-4">
-                <div class="card card-outline card-danger">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-arrow-down mr-2 text-danger"></i>Egresos</h3>
-                        <div class="card-tools">
-                            <span class="badge badge-danger" style="font-size:1rem;">{{ cierre.total_egresos_grandes|floatformat:2 }} bs</span>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td>Sueldos</td>
-                                <td class="text-right">{{ cierre.total_sueldos|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>Egresos grandes</td>
-                                <td class="text-right">{{ cierre.total_egresos_grandes|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>Compras extraordinarias</td>
-                                <td class="text-right">{{ cierre.total_compras_extraordinarias|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>Gastos operativos noche</td>
-                                <td class="text-right">{{ cierre.total_gastos_operativos_noche|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>Reposición caja chica (1%)</td>
-                                <td class="text-right">{{ cierre.reposicion_caja_chica|floatformat:2 }} bs</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card card-outline card-warning">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-users mr-2 text-warning"></i>Sueldos</h3>
-                        <div class="card-tools">
-                            <span class="badge badge-warning" style="font-size:1rem;">{{ cierre.total_sueldos|floatformat:2 }} bs</span>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            {% for s in sueldos %}
-                            <tr>
-                                <td>{{ s.nombre_display }}</td>
-                                <td class="text-right">{{ s.total_sueldo|floatformat:2 }} bs</td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="2" class="text-center text-muted py-2">Sin sueldos registrados</td></tr>
-                            {% endfor %}
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- RESULTADO Y CAJA -->
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card card-outline card-dark">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-cash-register mr-2"></i>Caja Chica</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td>Saldo inicial</td>
-                                <td class="text-right"><strong>{{ cierre.caja_inicial|floatformat:2 }} bs</strong></td>
-                            </tr>
-                            <tr>
-                                <td>+ Reposición (1% ventas)</td>
-                                <td class="text-right">{{ cierre.reposicion_caja_chica|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>− Gastos caja chica</td>
-                                <td class="text-right text-danger">{{ cierre.total_gastos_caja_chica|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr class="table-secondary">
-                                <td><strong>Saldo caja chica</strong></td>
-                                <td class="text-right"><strong>{{ cierre.saldo_caja_chica|floatformat:2 }} bs</strong></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card card-outline card-primary">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-chart-line mr-2"></i>Resultado de la noche</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td>Ventas</td>
-                                <td class="text-right">{{ cierre.total_ventas|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>Otros ingresos</td>
-                                <td class="text-right">{{ cierre.total_otros_ingresos|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td class="text-danger">− Sueldos</td>
-                                <td class="text-right text-danger">{{ cierre.total_sueldos|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td class="text-danger">− Egresos grandes</td>
-                                <td class="text-right text-danger">{{ cierre.total_egresos_grandes|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td class="text-danger">− Compras ext.</td>
-                                <td class="text-right text-danger">{{ cierre.total_compras_extraordinarias|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td class="text-danger">− Gastos op. noche</td>
-                                <td class="text-right text-danger">{{ cierre.total_gastos_operativos_noche|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td class="text-danger">− Reposición caja</td>
-                                <td class="text-right text-danger">{{ cierre.reposicion_caja_chica|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr class="table-primary">
-                                <td><strong>TOTAL NETO</strong></td>
-                                <td class="text-right"><strong>{{ cierre.total_neto|floatformat:2 }} bs</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-success"><strong>Saldo efectivo → dueño</strong></td>
-                                <td class="text-right text-success"><strong>{{ cierre.saldo_efectivo_dueno|floatformat:2 }} bs</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-info"><strong>Saldo QR → dueño</strong></td>
-                                <td class="text-right text-info"><strong>{{ cierre.saldo_qr_dueno|floatformat:2 }} bs</strong></td>
-                            </tr>
-
-
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card card-outline card-info">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-university mr-2"></i>Cierres Bancarios</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm">
-                            <thead><tr><th>Cuenta</th><th>Lote</th><th class="text-right">Monto</th><th></th></tr></thead>
-                            <tbody>
-                                {% for b in cierres_bancarios %}
-                                <tr>
-                                    <td>{{ b.get_cuenta_display }}</td>
-                                    <td>{{ b.lote }}</td>
-                                    <td class="text-right">{{ b.monto|floatformat:2 }} bs</td>
-                                    <td>
-                                        {% if cierre.estado == 'borrador' %}
-                                        <form method="post" action="{% url 'cuentas:eliminar_cierre_bancario' b.pk %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button class="btn btn-xs btn-danger" onclick="return confirm('¿Eliminar?')"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="4" class="text-center text-muted">Sin cierres bancarios</td></tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-secondary">
-                                    <td colspan="2"><strong>Total</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_bancos|floatformat:2 }} bs</strong></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    {% if cierre.estado == 'borrador' %}
-                    <div class="card-footer">
-                        <form method="post" action="{% url 'cuentas:agregar_cierre_bancario' cierre.pk %}" class="form-inline">
-                            {% csrf_token %}
-                            <select name="cuenta" class="form-control form-control-sm mr-1" required>
-                                <option value="equi_c1">Equi C1</option>
-                                <option value="equi_c2">Equi C2</option>
-                                <option value="equi_c3">Equi C3</option>
-                            </select>
-                            <input type="text" name="lote" class="form-control form-control-sm mr-1" placeholder="Nro. lote" required>
-                            <input type="number" name="monto" class="form-control form-control-sm mr-1" placeholder="Monto" step="0.01" min="0" required>
-                            <button class="btn btn-sm btn-primary">Agregar</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- FLUJO DE CAJA -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card card-outline card-success">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-money-bill-wave mr-2"></i>Flujo Efectivo</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td>+ Efectivo ventas</td>
-                                <td class="text-right">{{ cierre.total_efectivo|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>− Sueldos</td>
-                                <td class="text-right text-danger">{{ cierre.total_sueldos|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr>
-                                <td>− Egresos grandes efectivo</td>
-                                <td class="text-right text-danger">
-                                    {{ cierre.egresos_grandes.filter.metodo_pago|default:"0.00" }} bs
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>− Reposición caja chica</td>
-                                <td class="text-right text-danger">{{ cierre.reposicion_caja_chica|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr class="table-success">
-                                <td><strong>Saldo a entregar al dueño</strong></td>
-                                <td class="text-right"><strong>{{ cierre.saldo_efectivo_dueno|floatformat:2 }} bs</strong></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card card-outline card-info">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-qrcode mr-2"></i>Flujo QR</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td>+ QR ventas</td>
-                                <td class="text-right">{{ cierre.total_qr|floatformat:2 }} bs</td>
-                            </tr>
-
-                            <tr>
-                                <td>− Egresos grandes transferencia</td>
-                                <td class="text-right text-danger">{{ cierre.total_egresos_transferencia|floatformat:2 }} bs</td>
-                            </tr>
-                            <tr class="table-info">
-                                <td><strong>Saldo QR a depositar</strong></td>
-                                <td class="text-right"><strong>{{ cierre.saldo_qr_dueno|floatformat:2 }} bs</strong></td>
-                            </tr>
-
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-
-            <!-- ENTREGAS PUNTO DE VENTA -->
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-hand-holding-usd mr-2"></i>Entregas por Punto de Venta</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Punto de venta</th>
-                                    <th class="text-right">Talonario</th>
-                                    <th class="text-right">Efectivo</th>
-                                    <th class="text-right">QR</th>
-                                    <th class="text-right">Voucher</th>
-                                    <th class="text-right">Total entregado</th>
-                                    <th class="text-right">Diferencia</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for e in entregas %}
-                                <tr>
-                                    <td>
-                                        {% if e.es_barra %}
-                                        <span class="badge badge-dark"><i class="fas fa-glass-martini-alt"></i> Barra</span>
-                                        {% else %}
-                                        <i class="fas fa-user text-muted mr-1"></i>{{ e.nombre_display }}
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-right">{{ e.total_talonario|floatformat:2|default:"—" }} bs</td>
-                                    <td class="text-right">{{ e.efectivo|floatformat:2 }} bs</td>
-                                    <td class="text-right">{{ e.qr|floatformat:2 }} bs</td>
-                                    <td class="text-right">{{ e.voucher_banco|floatformat:2 }} bs</td>
-                                    <td class="text-right"><strong>{{ e.total_entregado|floatformat:2 }} bs</strong></td>
-                                    <td class="text-right {% if e.diferencia is not None %}{% if e.diferencia >= 0 %}text-success{% else %}text-danger font-weight-bold{% endif %}{% endif %}">
-                                        {% if e.diferencia is not None %}{{ e.diferencia|floatformat:2 }} bs{% else %}—{% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'cuentas:editar_entrega' e.pk %}" class="btn btn-xs btn-info">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        {% if cierre.estado == 'borrador' %}
-                                        <form method="post" action="{% url 'cuentas:eliminar_entrega' e.pk %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button class="btn btn-xs btn-danger" onclick="return confirm('¿Eliminar?')"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="8" class="text-center text-muted">Sin entregas registradas</td></tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot class="table-secondary">
-                                <tr>
-                                    <td><strong>Totales</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_ventas|floatformat:2 }} bs</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_efectivo|floatformat:2 }} bs</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_qr|floatformat:2 }} bs</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_voucher|floatformat:2 }} bs</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_ingresos|floatformat:2 }} bs</strong></td>
-                                    <td colspan="2"></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    {% if cierre.estado == 'borrador' %}
-                    <div class="card-footer">
-                        <form method="post" action="{% url 'cuentas:agregar_entrega' cierre.pk %}" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <div class="form-row mb-2">
-                                <div class="col-auto">
-                                    <div class="custom-control custom-switch mt-1">
-                                        <input type="checkbox" class="custom-control-input" id="esBarra" name="es_barra" value="1">
-                                        <label class="custom-control-label" for="esBarra">Es barra</label>
-                                    </div>
-                                </div>
-                                <div class="col" id="selectUsuarioDiv">
-                                    <select name="usuario" class="form-control form-control-sm">
-                                        <option value="">— Seleccionar persona —</option>
-                                        {% for u in usuarios_sistema %}
-                                        <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.get_rol_display }})</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="total_talonario" class="form-control form-control-sm" placeholder="Total talonario" step="0.01" min="0">
-                                </div>
-                            </div>
-                            <div class="form-row mb-2">
-                                <div class="col">
-                                    <input type="number" name="efectivo" class="form-control form-control-sm" placeholder="Efectivo" step="0.01" min="0" value="0">
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="qr" class="form-control form-control-sm" placeholder="QR" step="0.01" min="0" value="0">
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="voucher_banco" class="form-control form-control-sm" placeholder="Voucher banco" step="0.01" min="0" value="0">
-                                </div>
-                                <div class="col">
-                                    <input type="file" name="comprobante" class="form-control-file form-control-sm" accept="image/*">
-                                </div>
-                                <div class="col-auto">
-                                    <button class="btn btn-sm btn-primary">Registrar</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- OTROS INGRESOS -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-plus-circle mr-2"></i>Otros Ingresos</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm">
-                            <thead><tr><th>Concepto</th><th class="text-right">Monto</th><th></th></tr></thead>
-                            <tbody>
-                                {% for i in otros_ingresos %}
-                                <tr>
-                                    <td>{{ i.get_concepto_display }}{% if i.concepto == 'otro' %}: {{ i.concepto_otro }}{% endif %}</td>
-                                    <td class="text-right">{{ i.monto|floatformat:2 }} bs</td>
-                                    <td>
-                                        {% if cierre.estado == 'borrador' %}
-                                        <form method="post" action="{% url 'cuentas:eliminar_otro_ingreso' i.pk %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button class="btn btn-xs btn-danger" onclick="return confirm('¿Eliminar?')"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="3" class="text-center text-muted">Sin otros ingresos</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% if cierre.estado == 'borrador' %}
-                    <div class="card-footer">
-                        <form method="post" action="{% url 'cuentas:agregar_otro_ingreso' cierre.pk %}" class="form-inline">
-                            {% csrf_token %}
-                            <select name="concepto" class="form-control form-control-sm mr-1">
-                                <option value="ropa">Ropa</option>
-                                <option value="merchandising">Merchandising</option>
-                                <option value="cover">Cover / Entradas</option>
-                                <option value="equi_16">Equi 16%</option>
-                                <option value="otro">Otro</option>
-                            </select>
-                            <input type="text" name="concepto_otro" class="form-control form-control-sm mr-1" placeholder="Descripción (si es otro)">
-                            <input type="number" name="monto" class="form-control form-control-sm mr-1" placeholder="Monto" step="0.01" min="0" required>
-                            <button class="btn btn-sm btn-primary">Agregar</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- CAJA CHICA -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-receipt mr-2"></i>Movimientos Caja Chica</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm">
-                            <thead><tr><th>Tipo</th><th>Concepto</th><th class="text-right">Monto</th><th></th></tr></thead>
-                            <tbody>
-                                {% for m in movimientos_caja %}
-                                <tr>
-                                    <td>
-                                        <span class="badge {% if m.tipo == 'ingreso' %}badge-success{% else %}badge-danger{% endif %}">
-                                            {{ m.get_tipo_display }}
-                                        </span>
-                                    </td>
-                                    <td>{{ m.concepto }}</td>
-                                    <td class="text-right">{{ m.monto|floatformat:2 }} bs</td>
-                                    <td>
-                                        {% if cierre.estado == 'borrador' %}
-                                        <form method="post" action="{% url 'cuentas:eliminar_movimiento_caja' m.pk %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button class="btn btn-xs btn-danger" onclick="return confirm('¿Eliminar?')"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="4" class="text-center text-muted">Sin movimientos</td></tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-secondary">
-                                    <td colspan="2"><strong>Total gastos caja chica</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_gastos_caja_chica|floatformat:2 }} bs</strong></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    {% if cierre.estado == 'borrador' %}
-                    <div class="card-footer">
-                        <form method="post" action="{% url 'cuentas:agregar_movimiento_caja' cierre.pk %}" class="form-inline">
-                            {% csrf_token %}
-                            <select name="tipo" class="form-control form-control-sm mr-1">
-                                <option value="egreso">Egreso</option>
-                                <option value="ingreso">Ingreso</option>
-                            </select>
-                            <input type="text" name="concepto" class="form-control form-control-sm mr-1" placeholder="Concepto" required>
-                            <input type="number" name="monto" class="form-control form-control-sm mr-1" placeholder="Monto" step="0.01" min="0" required>
-                            <button class="btn btn-sm btn-primary">Agregar</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- EGRESOS GRANDES -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-shopping-bag mr-2"></i>Egresos Grandes</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm">
-                            <thead><tr><th>Concepto</th><th>Observación</th><th>Método</th><th class="text-right">Monto</th><th></th></tr></thead>
-                            <tbody>
-                                {% for e in egresos_grandes %}
-                                <tr>
-                                    <td>{{ e.get_concepto_display }}{% if e.concepto == 'otro' %}: {{ e.concepto_otro }}{% endif %}</td>
-                                    <td>{{ e.observacion|default:"—" }}</td>
-                                    <td><span class="badge {% if e.metodo_pago == 'efectivo' %}badge-success{% else %}badge-info{% endif %}">{{ e.get_metodo_pago_display }}</span></td>
-                                    <td class="text-right">{{ e.monto|floatformat:2 }} bs</td>
-                                    <td>
-                                        {% if cierre.estado == 'borrador' %}
-                                        <form method="post" action="{% url 'cuentas:eliminar_egreso_grande' e.pk %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button class="btn btn-xs btn-danger" onclick="return confirm('¿Eliminar?')"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="5" class="text-center text-muted">Sin egresos grandes</td></tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-secondary">
-                                    <td colspan="3"><strong>Total</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_egresos_grandes|floatformat:2 }} bs</strong></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    {% if cierre.estado == 'borrador' %}
-                    <div class="card-footer">
-                        <form method="post" action="{% url 'cuentas:agregar_egreso_grande' cierre.pk %}">
-                            {% csrf_token %}
-                            <div class="form-row">
-                                <div class="col">
-                                    <select name="concepto" class="form-control form-control-sm">
-                                        <option value="alquiler_equipo">Alquiler de equipo</option>
-                                        <option value="pago_artista">Pago a artista/DJ</option>
-                                        <option value="retiro_dueno">Retiro del dueño</option>
-                                        <option value="cuetes">Cuetes/Pirotecnia</option>
-                                        <option value="decoracion">Decoración</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
-                                </div>
-                                <div class="col">
-                                    <input type="text" name="concepto_otro" class="form-control form-control-sm" placeholder="Descripción">
-                                </div>
-                                <div class="col">
-                                    <select name="metodo_pago" class="form-control form-control-sm">
-                                        <option value="efectivo">Efectivo</option>
-                                        <option value="transferencia">Transferencia</option>
-                                    </select>
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="monto" class="form-control form-control-sm" placeholder="Monto" step="0.01" min="0" required>
-                                </div>
-                                <div class="col">
-                                    <input type="text" name="observacion" class="form-control form-control-sm" placeholder="Observación">
-                                </div>
-                                <div class="col-auto">
-                                    <button class="btn btn-sm btn-primary">Agregar</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- SUELDOS -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-users mr-2"></i>Sueldos de la Noche</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Persona</th>
-                                    <th>Puesto</th>
-                                    <th>Tipo</th>
-                                    <th class="text-right">Base</th>
-                                    <th class="text-right">Desc.</th>
-                                    <th class="text-right">Total</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for s in sueldos %}
-                                <tr>
-                                    <td>{{ s.nombre_display }}</td>
-                                    <td>{{ s.puesto|default:"—" }}</td>
-                                    <td>{{ s.get_tipo_display }}</td>
-                                    <td class="text-right">
-                                        {% if s.tipo == 'porcentaje' %}
-                                            {{ s.caja_mesero|floatformat:2 }} bs ({{ s.porcentaje }}%)
-                                        {% else %}
-                                            {{ s.monto_fijo|floatformat:2 }} bs
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-right text-danger">{{ s.descuento|floatformat:2 }} bs</td>
-                                    <td class="text-right"><strong>{{ s.total_sueldo|floatformat:2 }} bs</strong></td>
-                                    <td>
-                                        {% if cierre.estado == 'borrador' %}
-                                        <form method="post" action="{% url 'cuentas:eliminar_sueldo' s.pk %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button class="btn btn-xs btn-danger" onclick="return confirm('¿Eliminar?')"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="7" class="text-center text-muted">Sin sueldos registrados</td></tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-secondary">
-                                    <td colspan="5"><strong>Total sueldos</strong></td>
-                                    <td class="text-right"><strong>{{ cierre.total_sueldos|floatformat:2 }} bs</strong></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    {% if cierre.estado == 'borrador' %}
-                    <div class="card-footer">
-                        <form method="post" action="{% url 'cuentas:agregar_sueldo' cierre.pk %}">
-                            {% csrf_token %}
-                            <div class="form-row mb-2 align-items-center">
-                                <div class="col-auto">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="tipoPersona" name="tipo_persona_check">
-                                        <label class="custom-control-label" for="tipoPersona">Personal libre</label>
-                                    </div>
-                                    <input type="hidden" name="tipo_persona" id="tipoPersonaVal" value="sistema">
-                                </div>
-                                <div class="col" id="divEmpleado">
-                                    <select name="empleado" class="form-control form-control-sm">
-                                        <option value="">— Seleccionar —</option>
-                                        {% for u in usuarios_sistema %}
-                                        <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.get_rol_display }})</option>
-                                        {% endfor %}
-                                        {% for u in personal_sistema %}
-                                        <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.get_rol_display }})</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col d-none" id="divNombreLibre">
-                                    <input type="text" name="nombre_libre" class="form-control form-control-sm" placeholder="Nombre">
-                                </div>
-                                <div class="col d-none" id="divPuesto">
-                                    <input type="text" name="puesto" class="form-control form-control-sm" placeholder="Puesto">
-                                </div>
-                                <div class="col-auto">
-                                    <select name="tipo" class="form-control form-control-sm" id="selectTipo">
-                                        <option value="porcentaje">% caja</option>
-                                        <option value="fijo">Fijo</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row" id="campoPorcentaje">
-                                <div class="col">
-                                    <input type="number" name="caja_mesero" class="form-control form-control-sm" placeholder="Caja total" step="0.01" min="0">
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="porcentaje" class="form-control form-control-sm" placeholder="% comisión" step="0.01" min="0" value="4">
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="descuento" class="form-control form-control-sm" placeholder="Descuento" step="0.01" min="0" value="0">
-                                </div>
-                                <div class="col-auto">
-                                    <button class="btn btn-sm btn-primary">Agregar</button>
-                                </div>
-                            </div>
-                            <div class="form-row d-none" id="campoFijo">
-                                <div class="col">
-                                    <input type="number" name="monto_fijo" class="form-control form-control-sm" placeholder="Monto fijo (bs)" step="0.01" min="0">
-                                </div>
-                                <div class="col">
-                                    <input type="number" name="descuento" class="form-control form-control-sm" placeholder="Descuento" step="0.01" min="0" value="0">
-                                </div>
-                                <div class="col-auto">
-                                    <button class="btn btn-sm btn-primary">Agregar</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- PEDIDOS EXTRAORDINARIOS -->
-            {% if pedidos_ext %}
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-bolt mr-2 text-warning"></i>Compras Extraordinarias de la Noche</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        {% for pedido in pedidos_ext %}
-                        <div class="p-2 border-bottom">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong>Pedido #{{ pedido.id }}</strong>
-                                    <span class="badge badge-warning ml-1">Extraordinario</span>
-                                    <small class="text-muted ml-2">{{ pedido.fecha_solicitud|date:"d/m/Y" }}</small>
-                                    {% for compra in pedido.compras.all %}
-                                    <small class="d-block mt-1">
-                                        <span class="badge badge-secondary">Compra #{{ compra.id }} — {{ compra.proveedor }}</span>
-                                        {% for detalle in compra.detalles.all %}
-                                        {{ detalle.cantidad_botellas }} × {{ detalle.producto.nombre }} —
-                                        {% endfor %}
-                                        <strong>{{ compra.total|floatformat:2 }} bs</strong>
-                                    </small>
-                                    {% endfor %}
-                                    {% for gasto in pedido.gastos_operativos.all %}
-                                    <small class="d-block text-muted" style="font-style:italic;">
-                                        <i class="fas fa-tag mr-1"></i>{{ gasto.descripcion }} x {{ gasto.cantidad }} - Bs. {{ gasto.precio_unitario }}
-                                        <span class="badge badge-secondary">{{ gasto.get_categoria_display }}</span>
-                                    </small>
-                                    {% endfor %}
-                                </div>
-                                <div class="text-right">
-                                    <a href="{% url 'compras:detalle_pedido' pedido.id %}" class="btn btn-sm btn-info">
-                                        <i class="fas fa-eye"></i> Ver pedido
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-        </div>
+  <!-- Métricas principales -->
+  <div class="eq-metrics-grid" id="metricas-grid">
+    <div class="eq-metric green">
+      <div class="eq-metric-label">Ventas noche</div>
+      <div class="eq-metric-value green" id="m-ventas">{{ cierre.total_ventas|floatformat:2 }} bs</div>
     </div>
-</section>
+    <div class="eq-metric blue">
+      <div class="eq-metric-label">Neto operacional</div>
+      <div class="eq-metric-value blue" id="m-neto">{{ cierre.total_neto|floatformat:2 }} bs</div>
+    </div>
+    <div class="eq-metric amber">
+      <div class="eq-metric-label">Total sueldos</div>
+      <div class="eq-metric-value amber" id="m-sueldos">{{ cierre.total_sueldos|floatformat:2 }} bs</div>
+    </div>
+    <div class="eq-metric red">
+      <div class="eq-metric-label">Total egresos</div>
+      <div class="eq-metric-value red" id="m-egresos">{{ cierre.total_egresos_grandes|floatformat:2 }} bs</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Gráfico ventas por hora -->
+    <div class="col-md-8">
+      <div class="eq-chart-wrap">
+        <div class="eq-chart-title">
+          <i class="ti ti-chart-line mr-2" style="color:var(--eq-accent);"></i>
+          Ventas por hora
+        </div>
+        <canvas id="chart-ventas-hora" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- Top productos y flujos -->
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-star mr-2" style="color:var(--eq-amber);"></i>Top productos</span>
+        </div>
+        <div class="card-body p-0" id="top-productos">
+          <div class="text-center py-3" style="color:var(--eq-text-3);">Cargando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Detalle ventas -->
+    <div class="col-md-4">
+      <div class="card card-border-green">
+        <div class="card-header"><span class="card-title">Detalle ventas</span></div>
+        <div class="card-body p-0" id="detalle-ventas">
+          <table class="table table-sm mb-0" id="tabla-sesiones">
+            <thead><tr><th>Punto de venta</th><th>Estado</th><th class="text-right">Ventas</th></tr></thead>
+            <tbody>
+              {% for s in sesiones %}
+              <tr>
+                <td>{% if s.es_barra %}<span class="badge badge-dark">Barra</span>{% else %}{{ s.usuario.get_full_name|default:s.usuario.username }}{% endif %}</td>
+                <td><span class="badge {% if s.estado == 'abierta' %}badge-success{% else %}badge-secondary{% endif %}">{{ s.get_estado_display }}</span></td>
+                <td class="text-right primary-cell">{{ s.total_ventas|floatformat:2 }} bs</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flujo efectivo -->
+    <div class="col-md-4">
+      <div class="card card-border-blue">
+        <div class="card-header"><span class="card-title">Flujo Efectivo</span></div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <tr><td>+ Efectivo ventas</td><td class="text-right" id="r-efectivo">{{ cierre.total_efectivo|floatformat:2 }} bs</td></tr>
+            <tr><td class="text-danger">− Sueldos</td><td class="text-right text-danger" id="r-sueldos-ef">{{ cierre.total_sueldos|floatformat:2 }} bs</td></tr>
+            <tr><td class="text-danger">− Egresos efectivo</td><td class="text-right text-danger">{{ cierre.total_egresos_grandes|floatformat:2 }} bs</td></tr>
+            <tr><td class="text-danger">− Reposición caja</td><td class="text-right text-danger" id="r-repos">{{ cierre.reposicion_caja_chica|floatformat:2 }} bs</td></tr>
+            <tr class="table-active"><td><strong>Saldo → dueño</strong></td><td class="text-right" style="color:var(--eq-green);"><strong id="r-saldo-ef">{{ cierre.saldo_efectivo_dueno|floatformat:2 }} bs</strong></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flujo QR -->
+    <div class="col-md-4">
+      <div class="card card-border-cyan">
+        <div class="card-header"><span class="card-title">Flujo QR</span></div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <tr><td>+ QR ventas</td><td class="text-right" id="r-qr">{{ cierre.total_qr|floatformat:2 }} bs</td></tr>
+            <tr><td class="text-danger">− Egresos transferencia</td><td class="text-right text-danger">{{ cierre.total_egresos_transferencia|floatformat:2 }} bs</td></tr>
+            <tr class="table-active"><td><strong>Saldo QR → dueño</strong></td><td class="text-right" style="color:var(--eq-cyan);"><strong id="r-saldo-qr">{{ cierre.saldo_qr_dueno|floatformat:2 }} bs</strong></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── TAB: VENTAS E INGRESOS ─────────────────────────────────── -->
+<div class="eq-tab-content" id="tab-ventas">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 style="color:var(--eq-text-1); margin:0;">Resumen de ingresos</h5>
+    <button class="btn btn-primary btn-sm" onclick="abrirPopupOtrosIngresos()">
+      <i class="ti ti-plus mr-1"></i> Otros ingresos
+    </button>
+  </div>
+
+  <!-- Entregas por punto de venta -->
+  <div class="card mb-3">
+    <div class="card-header"><span class="card-title">Entregas por punto de venta</span></div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Punto de venta</th>
+            <th class="text-right">Talonario</th>
+            <th class="text-right">Efectivo</th>
+            <th class="text-right">QR</th>
+            <th class="text-right">Voucher</th>
+            <th class="text-right">Total</th>
+            <th class="text-right">Diferencia</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entregas %}
+          <tr>
+            <td>
+              {% if e.es_barra %}<span class="badge badge-dark">Barra</span>
+              {% else %}<i class="ti ti-user mr-1" style="color:var(--eq-text-3);"></i>{{ e.nombre_display }}{% endif %}
+            </td>
+            <td class="text-right">{{ e.total_talonario|floatformat:2|default:"—" }} bs</td>
+            <td class="text-right">{{ e.efectivo|floatformat:2 }} bs</td>
+            <td class="text-right">{{ e.qr|floatformat:2 }} bs</td>
+            <td class="text-right">{{ e.voucher_banco|floatformat:2 }} bs</td>
+            <td class="text-right primary-cell">{{ e.total_entregado|floatformat:2 }} bs</td>
+            <td class="text-right {% if e.diferencia is not None %}{% if e.diferencia < 0 %}text-danger{% else %}text-success{% endif %}{% endif %}">
+              {% if e.diferencia is not None %}{{ e.diferencia|floatformat:2 }} bs{% else %}—{% endif %}
+            </td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="abrirConsolidar({{ e.pk }}, '{{ e.nombre_display }}', {{ e.total_talonario|default:0 }})">
+                <i class="ti ti-currency-dollar"></i> Consolidar
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-3" style="color:var(--eq-text-3);">
+              Sin entregas registradas. Se crean automáticamente al cerrar sesiones de ventas.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-active">
+          <tr>
+            <td><strong>Totales</strong></td>
+            <td class="text-right"><strong>{{ cierre.total_ventas|floatformat:2 }} bs</strong></td>
+            <td class="text-right"><strong>{{ cierre.total_efectivo|floatformat:2 }} bs</strong></td>
+            <td class="text-right"><strong>{{ cierre.total_qr|floatformat:2 }} bs</strong></td>
+            <td class="text-right"><strong>{{ cierre.total_voucher|floatformat:2 }} bs</strong></td>
+            <td class="text-right"><strong>{{ cierre.total_ingresos|floatformat:2 }} bs</strong></td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Otros ingresos -->
+  {% if otros_ingresos %}
+  <div class="card">
+    <div class="card-header"><span class="card-title">Otros ingresos</span></div>
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Concepto</th><th class="text-right">Monto</th><th></th></tr></thead>
+        <tbody>
+          {% for i in otros_ingresos %}
+          <tr>
+            <td>{{ i.get_concepto_display }}{% if i.concepto == 'otro' %}: {{ i.concepto_otro }}{% endif %}</td>
+            <td class="text-right">{{ i.monto|floatformat:2 }} bs</td>
+            <td>
+              {% if cierre.estado == 'borrador' %}
+              <form method="post" action="{% url 'cuentas:eliminar_otro_ingreso' i.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar?')"><i class="ti ti-trash"></i></button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── TAB: EGRESOS ───────────────────────────────────────────── -->
+<div class="eq-tab-content" id="tab-egresos">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 style="color:var(--eq-text-1); margin:0;">Egresos grandes</h5>
+    {% if cierre.estado == 'borrador' %}
+    <button class="btn btn-primary btn-sm" onclick="abrirPopupEgreso()">
+      <i class="ti ti-plus mr-1"></i> Registrar egreso
+    </button>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Concepto</th><th>Observación</th><th>Método</th><th class="text-right">Monto</th><th></th></tr></thead>
+        <tbody>
+          {% for e in egresos_grandes %}
+          <tr>
+            <td class="primary-cell">{{ e.get_concepto_display }}{% if e.concepto == 'otro' %}: {{ e.concepto_otro }}{% endif %}</td>
+            <td style="color:var(--eq-text-3);">{{ e.observacion|default:"—" }}</td>
+            <td><span class="badge {% if e.metodo_pago == 'efectivo' %}badge-success{% else %}badge-info{% endif %}">{{ e.get_metodo_pago_display }}</span></td>
+            <td class="text-right primary-cell">{{ e.monto|floatformat:2 }} bs</td>
+            <td>
+              {% if cierre.estado == 'borrador' %}
+              <form method="post" action="{% url 'cuentas:eliminar_egreso_grande' e.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar?')"><i class="ti ti-trash"></i></button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center py-3" style="color:var(--eq-text-3);">Sin egresos registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-active">
+          <tr><td colspan="3"><strong>Total</strong></td><td class="text-right"><strong>{{ cierre.total_egresos_grandes|floatformat:2 }} bs</strong></td><td></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB: SUELDOS ───────────────────────────────────────────── -->
+<div class="eq-tab-content" id="tab-sueldos">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 style="color:var(--eq-text-1); margin:0;">Sueldos de la noche</h5>
+    {% if cierre.estado == 'borrador' %}
+    <button class="btn btn-primary btn-sm" onclick="abrirPopupSueldo()">
+      <i class="ti ti-plus mr-1"></i> Registrar sueldo
+    </button>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Nombre</th><th>Puesto</th><th>Tipo</th><th class="text-right">Base</th><th class="text-right">Descuento</th><th class="text-right">Total</th><th></th></tr></thead>
+        <tbody>
+          {% for s in sueldos %}
+          <tr>
+            <td class="primary-cell">{{ s.nombre_display }}</td>
+            <td style="color:var(--eq-text-3);">{{ s.puesto|default:"—" }}</td>
+            <td>{{ s.get_tipo_display }}</td>
+            <td class="text-right">{% if s.tipo == 'porcentaje' %}{{ s.caja_mesero|floatformat:2 }} ({{ s.porcentaje }}%){% else %}{{ s.monto_fijo|floatformat:2 }}{% endif %} bs</td>
+            <td class="text-right text-danger">{{ s.descuento|floatformat:2 }} bs</td>
+            <td class="text-right primary-cell">{{ s.total_sueldo|floatformat:2 }} bs</td>
+            <td>
+              {% if cierre.estado == 'borrador' %}
+              <form method="post" action="{% url 'cuentas:eliminar_sueldo' s.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar?')"><i class="ti ti-trash"></i></button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center py-3" style="color:var(--eq-text-3);">Sin sueldos registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-active">
+          <tr><td colspan="5"><strong>Total sueldos</strong></td><td class="text-right"><strong>{{ cierre.total_sueldos|floatformat:2 }} bs</strong></td><td></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB: CAJA CHICA ────────────────────────────────────────── -->
+<div class="eq-tab-content" id="tab-caja">
+  <div class="row">
+    <div class="col-md-4">
+      <div class="card card-border-blue mb-3">
+        <div class="card-body">
+          <table class="table table-sm mb-0">
+            <tr><td>Saldo inicial</td><td class="text-right primary-cell">{{ cierre.caja_inicial|floatformat:2 }} bs</td></tr>
+            <tr><td class="text-danger">− Gastos caja chica</td><td class="text-right text-danger">{{ cierre.total_gastos_caja_chica|floatformat:2 }} bs</td></tr>
+            <tr><td style="color:var(--eq-green);">+ Reposición 1%</td><td class="text-right" style="color:var(--eq-green);">{{ cierre.reposicion_caja_chica|floatformat:2 }} bs</td></tr>
+            <tr class="table-active"><td><strong>Saldo caja chica</strong></td><td class="text-right"><strong>{{ cierre.saldo_caja_chica|floatformat:2 }} bs</strong></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span style="font-size:13px; font-weight:600; color:var(--eq-text-1);">Movimientos</span>
+        {% if cierre.estado == 'borrador' %}
+        <button class="btn btn-primary btn-sm" onclick="abrirPopupCaja()">
+          <i class="ti ti-plus mr-1"></i> Registrar movimiento
+        </button>
+        {% endif %}
+      </div>
+      <div class="card">
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Tipo</th><th>Concepto</th><th class="text-right">Monto</th><th></th></tr></thead>
+            <tbody>
+              {% for m in movimientos_caja %}
+              <tr>
+                <td><span class="badge {% if m.tipo == 'ingreso' %}badge-success{% else %}badge-danger{% endif %}">{{ m.get_tipo_display }}</span></td>
+                <td>{{ m.concepto }}</td>
+                <td class="text-right">{{ m.monto|floatformat:2 }} bs</td>
+                <td>
+                  {% if cierre.estado == 'borrador' %}
+                  <form method="post" action="{% url 'cuentas:eliminar_movimiento_caja' m.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar?')"><i class="ti ti-trash"></i></button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center py-3" style="color:var(--eq-text-3);">Sin movimientos registrados.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB: ARQUEOS Y CIERRES ─────────────────────────────────── -->
+<div class="eq-tab-content" id="tab-arqueos">
+  <div class="row">
+    <!-- Cierres bancarios -->
+    <div class="col-md-6">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span style="font-size:13px; font-weight:600; color:var(--eq-text-1);">Cierres Bancarios</span>
+        {% if cierre.estado == 'borrador' %}
+        <button class="btn btn-primary btn-sm" onclick="abrirPopupBanco()">
+          <i class="ti ti-plus mr-1"></i> Agregar lote
+        </button>
+        {% endif %}
+      </div>
+      <div class="card mb-3">
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Cuenta</th><th>Lote</th><th class="text-right">Monto</th><th></th></tr></thead>
+            <tbody>
+              {% for b in cierres_bancarios %}
+              <tr>
+                <td class="primary-cell">{{ b.get_cuenta_display }}</td>
+                <td>{{ b.lote }}</td>
+                <td class="text-right">{{ b.monto|floatformat:2 }} bs</td>
+                <td>
+                  {% if cierre.estado == 'borrador' %}
+                  <form method="post" action="{% url 'cuentas:eliminar_cierre_bancario' b.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar?')"><i class="ti ti-trash"></i></button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center py-3" style="color:var(--eq-text-3);">Sin cierres bancarios.</td></tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="table-active">
+              <tr><td colspan="2"><strong>Total</strong></td><td class="text-right"><strong>{{ cierre.total_bancos|floatformat:2 }} bs</strong></td><td></td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extracto QR -->
+    <div class="col-md-6">
+      <div style="font-size:13px; font-weight:600; color:var(--eq-text-1); margin-bottom:8px;">Extracto QR por punto de venta</div>
+      {% for entrega in entregas %}
+      <div class="card mb-2">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+          <span style="font-size:12px; font-weight:600;">
+            {% if entrega.es_barra %}Barra{% else %}{{ entrega.nombre_display }}{% endif %}
+          </span>
+          <span style="font-size:12px; color:var(--eq-accent);">Total QR: {{ entrega.qr|floatformat:2 }} bs</span>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>#</th><th>Hora</th><th class="text-right">Monto</th><th></th></tr></thead>
+            <tbody>
+              {% for comp in entrega.comprobantes_qr.all %}
+              <tr>
+                <td style="color:var(--eq-text-3);">{{ forloop.counter }}</td>
+                <td style="color:var(--eq-text-3);">{{ comp.creado_en|date:"H:i" }}</td>
+                <td class="text-right primary-cell">{{ comp.monto|floatformat:2 }} bs</td>
+                <td>
+                  {% if cierre.estado == 'borrador' %}
+                  <form method="post" action="{% url 'cuentas:eliminar_comprobante_qr' comp.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-danger btn-sm"><i class="ti ti-trash"></i></button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center py-2" style="color:var(--eq-text-3); font-size:12px;">Sin comprobantes QR.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% if cierre.estado == 'borrador' %}
+          <div style="padding:8px 12px; border-top:1px solid var(--eq-border);">
+            <form method="post" action="{% url 'cuentas:agregar_comprobante_qr' entrega.pk %}" class="form-inline">
+              {% csrf_token %}
+              <input type="number" name="monto" class="form-control form-control-sm mr-2" placeholder="Monto QR" step="0.01" min="0.01" style="width:120px;" required>
+              <button class="btn btn-primary btn-sm"><i class="ti ti-plus mr-1"></i>Agregar</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB: COVER ─────────────────────────────────────────────── -->
+<div class="eq-tab-content" id="tab-cover">
+  <div class="alert alert-info mb-3">
+    <i class="ti ti-info-circle mr-2"></i>
+    Integración con RockTickets pendiente. Por ahora registrá el cover manualmente.
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Registro de Cover / Entradas</span></div>
+    {% if cierre.estado == 'borrador' %}
+    <div class="card-footer">
+      <form method="post" action="{% url 'cuentas:agregar_otro_ingreso' cierre.pk %}" class="form-inline">
+        {% csrf_token %}
+        <input type="hidden" name="concepto" value="cover">
+        <input type="number" name="monto" class="form-control form-control-sm mr-2" placeholder="Total cover (bs)" step="0.01" min="0" required>
+        <input type="text" name="concepto_otro" class="form-control form-control-sm mr-2" placeholder="Descripción (ej: 170 personas × 30 bs)">
+        <button class="btn btn-primary btn-sm"><i class="ti ti-plus mr-1"></i>Registrar</button>
+      </form>
+    </div>
+    {% endif %}
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Descripción</th><th class="text-right">Monto</th><th></th></tr></thead>
+        <tbody>
+          {% for i in otros_ingresos %}{% if i.concepto == 'cover' %}
+          <tr>
+            <td>{{ i.concepto_otro|default:"Cover" }}</td>
+            <td class="text-right">{{ i.monto|floatformat:2 }} bs</td>
+            <td>
+              {% if cierre.estado == 'borrador' %}
+              <form method="post" action="{% url 'cuentas:eliminar_otro_ingreso' i.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar?')"><i class="ti ti-trash"></i></button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── POPUPS ─────────────────────────────────────────────────── -->
+
+<!-- Popup Consolidar -->
+<div class="eq-popup-overlay" id="popup-consolidar">
+  <div class="eq-popup">
+    <div class="eq-popup-header">
+      <span class="eq-popup-title" id="consolidar-titulo">Consolidar ventas</span>
+      <button class="eq-popup-close" onclick="cerrarPopup('popup-consolidar')">×</button>
+    </div>
+    <div class="eq-popup-body">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px; color:var(--eq-text-3); margin-bottom:4px;">Total talonario</div>
+        <div style="font-size:24px; font-weight:700; color:var(--eq-green);" id="consolidar-talonario">0.00 bs</div>
+      </div>
+      <form method="post" id="form-consolidar" action="">
+        {% csrf_token %}
+        <div class="form-row mb-3">
+          <div class="form-group col-md-4">
+            <label>Efectivo</label>
+            <input type="number" name="efectivo" class="form-control" step="0.01" min="0" value="0">
+          </div>
+          <div class="form-group col-md-4">
+            <label>QR (calculado)</label>
+            <input type="number" name="qr" class="form-control" step="0.01" min="0" value="0" id="consolidar-qr" readonly style="background:var(--eq-surface-2);">
+          </div>
+          <div class="form-group col-md-4">
+            <label>Voucher banco</label>
+            <input type="number" name="voucher_banco" class="form-control" step="0.01" min="0" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Total talonario (confirmar)</label>
+          <input type="number" name="total_talonario" class="form-control" step="0.01" min="0" id="consolidar-total-input">
+        </div>
+      </form>
+    </div>
+    <div class="eq-popup-footer">
+      <button class="btn btn-secondary" onclick="cerrarPopup('popup-consolidar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('form-consolidar').submit()">
+        <i class="ti ti-check mr-1"></i> Consolidar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup Egreso -->
+<div class="eq-popup-overlay" id="popup-egreso">
+  <div class="eq-popup">
+    <div class="eq-popup-header">
+      <span class="eq-popup-title">Registrar Egreso Grande</span>
+      <button class="eq-popup-close" onclick="cerrarPopup('popup-egreso')">×</button>
+    </div>
+    <form method="post" action="{% url 'cuentas:agregar_egreso_grande' cierre.pk %}">
+      {% csrf_token %}
+      <div class="eq-popup-body">
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label>Concepto</label>
+            <select name="concepto" class="form-control">
+              <option value="alquiler_equipo">Alquiler de equipo</option>
+              <option value="pago_artista">Pago a artista/DJ</option>
+              <option value="retiro_dueno">Retiro del dueño</option>
+              <option value="cuetes">Cuetes/Pirotecnia</option>
+              <option value="decoracion">Decoración</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group col-md-6">
+            <label>Método de pago</label>
+            <select name="metodo_pago" class="form-control">
+              <option value="efectivo">Efectivo</option>
+              <option value="transferencia">Transferencia</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label>Monto (bs)</label>
+            <input type="number" name="monto" class="form-control" step="0.01" min="0" required>
+          </div>
+          <div class="form-group col-md-6">
+            <label>Descripción</label>
+            <input type="text" name="concepto_otro" class="form-control" placeholder="Detallar si es necesario">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observación</label>
+          <input type="text" name="observacion" class="form-control" placeholder="Opcional">
+        </div>
+      </div>
+      <div class="eq-popup-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarPopup('popup-egreso')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-check mr-1"></i> Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Popup Sueldo -->
+<div class="eq-popup-overlay" id="popup-sueldo">
+  <div class="eq-popup">
+    <div class="eq-popup-header">
+      <span class="eq-popup-title">Registrar Sueldo</span>
+      <button class="eq-popup-close" onclick="cerrarPopup('popup-sueldo')">×</button>
+    </div>
+    <form method="post" action="{% url 'cuentas:agregar_sueldo' cierre.pk %}">
+      {% csrf_token %}
+      <div class="eq-popup-body">
+        <div class="form-group">
+          <div class="custom-control custom-switch mb-2">
+            <input type="checkbox" class="custom-control-input" id="switchLibre" onchange="togglePersonaLibre(this)">
+            <label class="custom-control-label" for="switchLibre">Personal libre (no registrado)</label>
+          </div>
+          <input type="hidden" name="tipo_persona" id="tipoPersonaVal" value="sistema">
+        </div>
+        <div class="form-group" id="divEmpleado">
+          <label>Empleado</label>
+          <select name="empleado" class="form-control">
+            <option value="">— Seleccionar —</option>
+            {% for u in usuarios_sistema %}
+            <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.get_rol_display }})</option>
+            {% endfor %}
+            {% for u in personal_sistema %}
+            <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.get_rol_display }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-row d-none" id="divLibre">
+          <div class="form-group col-md-6">
+            <label>Nombre</label>
+            <input type="text" name="nombre_libre" class="form-control" placeholder="Nombre completo">
+          </div>
+          <div class="form-group col-md-6">
+            <label>Puesto</label>
+            <input type="text" name="puesto" class="form-control" placeholder="Puesto">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label>Tipo</label>
+            <select name="tipo" class="form-control" id="tipoSueldo" onchange="toggleTipoSueldo(this)">
+              <option value="porcentaje">% de caja</option>
+              <option value="fijo">Monto fijo</option>
+            </select>
+          </div>
+          <div class="col-md-8" id="campoPorcentaje">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label>Caja total</label>
+                <input type="number" name="caja_mesero" class="form-control" step="0.01" min="0">
+              </div>
+              <div class="form-group col-md-6">
+                <label>% comisión</label>
+                <input type="number" name="porcentaje" class="form-control" step="0.01" min="0" value="4">
+              </div>
+            </div>
+          </div>
+          <div class="col-md-8 d-none" id="campoFijo">
+            <div class="form-group">
+              <label>Monto fijo (bs)</label>
+              <input type="number" name="monto_fijo" class="form-control" step="0.01" min="0">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descuento (bs)</label>
+          <input type="number" name="descuento" class="form-control" step="0.01" min="0" value="0">
+        </div>
+      </div>
+      <div class="eq-popup-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarPopup('popup-sueldo')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-check mr-1"></i> Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Popup Caja Chica -->
+<div class="eq-popup-overlay" id="popup-caja">
+  <div class="eq-popup">
+    <div class="eq-popup-header">
+      <span class="eq-popup-title">Movimiento Caja Chica</span>
+      <button class="eq-popup-close" onclick="cerrarPopup('popup-caja')">×</button>
+    </div>
+    <form method="post" action="{% url 'cuentas:agregar_movimiento_caja' cierre.pk %}">
+      {% csrf_token %}
+      <div class="eq-popup-body">
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label>Tipo</label>
+            <select name="tipo" class="form-control">
+              <option value="egreso">Egreso</option>
+              <option value="ingreso">Ingreso</option>
+            </select>
+          </div>
+          <div class="form-group col-md-8">
+            <label>Concepto</label>
+            <input type="text" name="concepto" class="form-control" placeholder="Descripción del movimiento" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Monto (bs)</label>
+          <input type="number" name="monto" class="form-control" step="0.01" min="0.01" required>
+        </div>
+      </div>
+      <div class="eq-popup-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarPopup('popup-caja')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-check mr-1"></i> Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Popup Banco -->
+<div class="eq-popup-overlay" id="popup-banco">
+  <div class="eq-popup">
+    <div class="eq-popup-header">
+      <span class="eq-popup-title">Agregar Cierre Bancario</span>
+      <button class="eq-popup-close" onclick="cerrarPopup('popup-banco')">×</button>
+    </div>
+    <form method="post" action="{% url 'cuentas:agregar_cierre_bancario' cierre.pk %}">
+      {% csrf_token %}
+      <div class="eq-popup-body">
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label>Cuenta</label>
+            <select name="cuenta" class="form-control">
+              <option value="equi_c1">Equi C1</option>
+              <option value="equi_c2">Equi C2</option>
+              <option value="equi_c3">Equi C3</option>
+            </select>
+          </div>
+          <div class="form-group col-md-4">
+            <label>Nro. Lote</label>
+            <input type="text" name="lote" class="form-control" placeholder="068-068" required>
+          </div>
+          <div class="form-group col-md-4">
+            <label>Monto (bs)</label>
+            <input type="number" name="monto" class="form-control" step="0.01" min="0.01" required>
+          </div>
+        </div>
+      </div>
+      <div class="eq-popup-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarPopup('popup-banco')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-check mr-1"></i> Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Popup Otros Ingresos -->
+<div class="eq-popup-overlay" id="popup-otros-ingresos">
+  <div class="eq-popup">
+    <div class="eq-popup-header">
+      <span class="eq-popup-title">Registrar Otro Ingreso</span>
+      <button class="eq-popup-close" onclick="cerrarPopup('popup-otros-ingresos')">×</button>
+    </div>
+    <form method="post" action="{% url 'cuentas:agregar_otro_ingreso' cierre.pk %}">
+      {% csrf_token %}
+      <div class="eq-popup-body">
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label>Concepto</label>
+            <select name="concepto" class="form-control">
+              <option value="ropa">Ropa</option>
+              <option value="merchandising">Merchandising</option>
+              <option value="cover">Cover / Entradas</option>
+              <option value="equi_16">Equi 16%</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group col-md-6">
+            <label>Monto (bs)</label>
+            <input type="number" name="monto" class="form-control" step="0.01" min="0.01" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <input type="text" name="concepto_otro" class="form-control" placeholder="Detalle adicional (opcional)">
+        </div>
+      </div>
+      <div class="eq-popup-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarPopup('popup-otros-ingresos')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-check mr-1"></i> Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- Modal cerrar noche -->
 <div class="modal fade" id="modalCerrar" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="fas fa-lock mr-2"></i>Cerrar noche</h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <form method="post" action="{% url 'cuentas:cerrar_cierre' cierre.pk %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <p>¿Está seguro de cerrar el cierre del {{ cierre.fecha|date:"d/m/Y" }}?</p>
-                    <div class="alert alert-info mb-0">
-                        <strong>Neto de la noche:</strong> {{ cierre.total_neto|floatformat:2 }} bs
-                    </div>
-                    <div class="alert alert-warning mt-2 mb-0">
-                        Una vez cerrado, el cierre no podrá editarse.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Confirmar cierre</button>
-                </div>
-            </form>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="ti ti-lock mr-2"></i>Cerrar noche</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <form method="post" action="{% url 'cuentas:cerrar_cierre' cierre.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>¿Está seguro de cerrar el cierre del {{ cierre.fecha|date:"d/m/Y" }}?</p>
+          <div class="alert alert-info mb-2">
+            <strong>Neto de la noche:</strong> {{ cierre.total_neto|floatformat:2 }} bs
+          </div>
+          <div class="alert alert-warning mb-0">
+            Una vez cerrado no podrá editarse.
+          </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success"><i class="ti ti-lock mr-1"></i>Confirmar cierre</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-document.getElementById('selectTipo').addEventListener('change', function() {
-    if (this.value === 'porcentaje') {
-        document.getElementById('campoPorcentaje').classList.remove('d-none');
-        document.getElementById('campoFijo').classList.add('d-none');
-    } else {
-        document.getElementById('campoPorcentaje').classList.add('d-none');
-        document.getElementById('campoFijo').classList.remove('d-none');
-    }
+// ── Tabs ─────────────────────────────────────────────────────
+document.querySelectorAll('.eq-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.eq-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.eq-tab-content').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+    });
 });
 
-document.getElementById('tipoPersona').addEventListener('change', function() {
-    if (this.checked) {
-        document.getElementById('divEmpleado').classList.add('d-none');
-        document.getElementById('divNombreLibre').classList.remove('d-none');
-        document.getElementById('divPuesto').classList.remove('d-none');
-        document.getElementById('tipoPersonaVal').value = 'libre';
-    } else {
-        document.getElementById('divEmpleado').classList.remove('d-none');
-        document.getElementById('divNombreLibre').classList.add('d-none');
-        document.getElementById('divPuesto').classList.add('d-none');
-        document.getElementById('tipoPersonaVal').value = 'sistema';
-    }
+// ── Popups ────────────────────────────────────────────────────
+function abrirPopup(id) { document.getElementById(id).classList.add('active'); }
+function cerrarPopup(id) { document.getElementById(id).classList.remove('active'); }
+function abrirPopupEgreso() { abrirPopup('popup-egreso'); }
+function abrirPopupSueldo() { abrirPopup('popup-sueldo'); }
+function abrirPopupCaja() { abrirPopup('popup-caja'); }
+function abrirPopupBanco() { abrirPopup('popup-banco'); }
+function abrirPopupOtrosIngresos() { abrirPopup('popup-otros-ingresos'); }
+
+function abrirConsolidar(entregaPk, nombre, talonario) {
+    document.getElementById('consolidar-titulo').textContent = 'Consolidar: ' + nombre;
+    document.getElementById('consolidar-talonario').textContent = talonario + ' bs';
+    document.getElementById('consolidar-total-input').value = talonario;
+    document.getElementById('form-consolidar').action = '/cuentas/entregas/' + entregaPk + '/editar/';
+    abrirPopup('popup-consolidar');
+}
+
+// Cerrar popup al click fuera
+document.querySelectorAll('.eq-popup-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === this) cerrarPopup(this.id);
+    });
 });
 
-document.getElementById('esBarra').addEventListener('change', function() {
-    document.getElementById('selectUsuarioDiv').style.display = this.checked ? 'none' : 'block';
-});
+// ── Toggle sueldo ─────────────────────────────────────────────
+function togglePersonaLibre(cb) {
+    document.getElementById('divEmpleado').classList.toggle('d-none', cb.checked);
+    document.getElementById('divLibre').classList.toggle('d-none', !cb.checked);
+    document.getElementById('tipoPersonaVal').value = cb.checked ? 'libre' : 'sistema';
+}
+
+function toggleTipoSueldo(sel) {
+    document.getElementById('campoPorcentaje').classList.toggle('d-none', sel.value !== 'porcentaje');
+    document.getElementById('campoFijo').classList.toggle('d-none', sel.value !== 'fijo');
+}
+
+// ── Gráfico ventas por hora ───────────────────────────────────
+let chartVentas = null;
+
+function initChart(labels, data) {
+    const ctx = document.getElementById('chart-ventas-hora').getContext('2d');
+    if (chartVentas) chartVentas.destroy();
+    chartVentas = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.map(h => h + ':00'),
+            datasets: [{
+                label: 'Ventas (bs)',
+                data: data,
+                backgroundColor: 'rgba(37,99,235,0.6)',
+                borderColor: '#2563EB',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.parsed.y.toFixed(2) + ' bs'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#475569', font: { family: 'Inter', size: 11 } },
+                    grid: { color: '#222222' }
+                },
+                y: {
+                    ticks: { color: '#475569', font: { family: 'Inter', size: 11 } },
+                    grid: { color: '#222222' }
+                }
+            }
+        }
+    });
+}
+
+// ── Tiempo real ───────────────────────────────────────────────
+function actualizarResumen() {
+    fetch("{% url 'cuentas:resumen_tiempo_real' cierre.pk %}")
+        .then(r => r.json())
+        .then(data => {
+            // Métricas
+            document.getElementById('m-ventas').textContent = parseFloat(data.total_ventas).toFixed(2) + ' bs';
+            document.getElementById('m-neto').textContent = parseFloat(data.total_neto).toFixed(2) + ' bs';
+            document.getElementById('m-sueldos').textContent = parseFloat(data.total_sueldos).toFixed(2) + ' bs';
+            document.getElementById('m-egresos').textContent = parseFloat(data.total_egresos).toFixed(2) + ' bs';
+
+            // Flujos
+            if (document.getElementById('r-saldo-ef'))
+                document.getElementById('r-saldo-ef').textContent = parseFloat(data.saldo_efectivo).toFixed(2) + ' bs';
+            if (document.getElementById('r-saldo-qr'))
+                document.getElementById('r-saldo-qr').textContent = parseFloat(data.saldo_qr).toFixed(2) + ' bs';
+
+            // Gráfico
+            if (data.ventas_por_hora && data.ventas_por_hora.length > 0) {
+                const labels = data.ventas_por_hora.map(v => v.hora);
+                const values = data.ventas_por_hora.map(v => parseFloat(v.total));
+                initChart(labels, values);
+            } else {
+                initChart(['Sin datos'], [0]);
+            }
+
+            // Top productos
+            const topEl = document.getElementById('top-productos');
+            if (data.top_productos && data.top_productos.length > 0) {
+                let html = '';
+                data.top_productos.forEach((p, i) => {
+                    html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 16px; border-bottom:1px solid var(--eq-border);">
+                        <span style="font-size:12px; color:var(--eq-text-2);"><span style="color:var(--eq-accent); font-weight:700; margin-right:8px;">${i+1}</span>${p.producto__nombre}</span>
+                        <span class="badge badge-primary">${p.total_vendido}</span>
+                    </div>`;
+                });
+                topEl.innerHTML = html;
+            } else {
+                topEl.innerHTML = '<div class="text-center py-3" style="color:var(--eq-text-3); font-size:12px;">Sin ventas registradas aún.</div>';
+            }
+        })
+        .catch(() => {});
+}
+
+// Inicializar y polling cada 60 segundos
+actualizarResumen();
+setInterval(actualizarResumen, 60000);
 </script>
 {% endblock %}
