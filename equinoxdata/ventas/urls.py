@@ -9,6 +9,7 @@ urlpatterns = [
     path('abrir/', views.abrir_sesion, name='abrir_sesion'),
     path('sesion/<int:pk>/', views.sesion_activa, name='sesion_activa'),
     path('sesion/<int:pk>/cerrar/', views.cerrar_sesion, name='cerrar_sesion'),
+    path('sesion/<int:pk>/resumen/', views.resumen_sesion, name='resumen_sesion'),
 
     # Comandas
     path('sesion/<int:sesion_pk>/comanda/nueva/', views.crear_comanda, name='crear_comanda'),
@@ -20,5 +21,6 @@ urlpatterns = [
     # Vista barra
     path('barra/', views.vista_barra, name='vista_barra'),
     path('barra/comandas.json/', views.comandas_pendientes_json, name='comandas_pendientes_json'),
+    path('barra/entregadas.json/', views.comandas_entregadas_json, name='comandas_entregadas_json'),
 
 ]

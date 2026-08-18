@@ -38,9 +38,33 @@
 
         {% endif %}
 
-    </div>  
+        <!-- Historial de comandas entregadas -->
+        {% if evento_hoy %}
+        <div class="container-fluid mt-4">
+            <div class="card card-border-green">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="card-title">
+                        <i class="ti ti-history mr-2" style="color:var(--eq-green);"></i>
+                        Historial de entregadas
+                    </span>
+                    <span class="badge badge-success" id="count-entregadas">0</span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="historial-entregadas">
+                        <div class="text-center py-3" style="color:var(--eq-text-3); font-size:13px;">
+                            Cargando historial...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
 </section>
 {% endblock %}
+
+
 
 {% block extra_scripts %}
 <script>
@@ -97,6 +121,42 @@ function actualizarComandas() {
             document.getElementById('indicador-conexion').innerHTML = '<i class="fas fa-circle mr-1"></i> Sin conexión';
         });
 }
+
+// Historial de entregadas
+function actualizarHistorial() {
+    fetch("{% url 'ventas:comandas_entregadas_json' %}")
+        .then(r => r.json())
+        .then(data => {
+            const contenedor = document.getElementById('historial-entregadas');
+            const count = document.getElementById('count-entregadas');
+            if (!contenedor) return;
+
+            count.textContent = data.comandas.length;
+
+            if (data.comandas.length === 0) {
+                contenedor.innerHTML = `<div class="text-center py-3" style="color:var(--eq-text-3); font-size:13px;">Sin comandas entregadas aún.</div>`;
+                return;
+            }
+
+            let html = '<table class="table table-hover mb-0"><thead><tr><th>#</th><th>Mesero</th><th>Referencia</th><th>Productos</th><th>Hora</th><th class="text-right">Total</th></tr></thead><tbody>';
+            data.comandas.forEach(c => {
+                html += `<tr>
+                    <td class="primary-cell">#${c.id}</td>
+                    <td>${c.mesero}</td>
+                    <td>${c.referencia}</td>
+                    <td>${c.items.map(i => `${i.cantidad}×${i.producto}${i.observacion ? ` <span style="color:var(--eq-amber);font-size:11px;">— ${i.observacion}</span>` : ''}`).join(', ')}</td>
+                    <td style="color:var(--eq-text-3);">${c.hora}</td>
+                    <td class="text-right primary-cell">${c.total} bs</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            contenedor.innerHTML = html;
+        });
+}
+
+actualizarHistorial();
+setInterval(actualizarHistorial, 15000);
+
 
 // Actualizar inmediatamente y luego cada 10 segundos
 actualizarComandas();

@@ -495,3 +495,58 @@ def comandas_pendientes_json(request):
         })
 
     return JsonResponse({'comandas': data})
+
+@login_required
+def comandas_entregadas_json(request):
+    """Endpoint para historial de comandas entregadas en la vista de barra."""
+    from datetime import date
+    from eventos.models import Evento
+
+    evento_hoy = Evento.objects.filter(fecha=date.today()).first()
+    if not evento_hoy:
+        return JsonResponse({'comandas': []})
+
+    comandas = Comanda.objects.filter(
+        sesion__evento=evento_hoy,
+        estado='entregada'
+    ).prefetch_related('items__producto').select_related(
+        'sesion__usuario'
+    ).order_by('-creada_en')[:20]
+
+    data = []
+    for c in comandas:
+        data.append({
+            'id': c.id,
+            'mesero': c.sesion.usuario.username,
+            'referencia': c.referencia or '—',
+            'items': [
+                {
+                    'producto': item.producto.nombre,
+                    'cantidad': item.cantidad,
+                    'observacion': item.observacion or '',
+                }
+                for item in c.items.all()
+            ],
+            'total': str(c.total),
+            'hora': c.actualizada_en.strftime('%H:%M'),
+        })
+
+    return JsonResponse({'comandas': data})
+
+
+@login_required
+def resumen_sesion(request, pk):
+    sesion = get_object_or_404(SesionTrabajo, pk=pk)
+    
+    if sesion.usuario != request.user and request.user.rol not in ['administrador', 'jefe_barra']:
+        messages.error(request, 'No tiene permisos para ver este resumen.')
+        return redirect('ventas:lista_sesiones')
+
+    comandas = sesion.comandas.filter(
+        estado='entregada'
+    ).prefetch_related('items__producto').order_by('creada_en')
+
+    return render(request, 'ventas/resumen_sesion.html', {
+        'sesion': sesion,
+        'comandas': comandas,
+    })

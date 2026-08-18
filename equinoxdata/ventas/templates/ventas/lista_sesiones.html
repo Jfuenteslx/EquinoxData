@@ -58,6 +58,9 @@
                                     <i class="fas fa-arrow-right"></i> Continuar
                                 </a>
                                 {% else %}
+                                <a href="{% url 'ventas:resumen_sesion' sesion.pk %}" class="btn btn-secondary btn-sm">
+                                    <i class="ti ti-receipt mr-1"></i> Ver resumen
+                                </a>
                                 {% endif %}
                             </td>
                         </tr>
