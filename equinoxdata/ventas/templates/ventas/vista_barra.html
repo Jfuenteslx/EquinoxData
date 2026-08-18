@@ -75,7 +75,7 @@ function actualizarComandas() {
                         </div>
                         <div class="card-body p-2">
                             <ul class="list-unstyled mb-2">
-                                ${c.items.map(i => `<li><strong>${i.cantidad}</strong> × ${i.producto}</li>`).join('')}
+                                ${c.items.map(i => `<li><strong>${i.cantidad}</strong> × ${i.producto}${i.observacion ? `<span style="color:var(--eq-amber); font-size:11px; margin-left:6px;">— ${i.observacion}</span>` : ''}</li>`).join('')}
                             </ul>
                         </div>
                         <div class="card-footer p-1">

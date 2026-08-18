@@ -9,6 +9,33 @@ from productos.models import ProductoMenu
 from .models import SesionTrabajo, Comanda, ItemComanda
 from .forms import ComandaForm, ItemComandaForm
 
+from django.db.models import Sum
+from productos.models import ProductoMenu
+from ventas.models import ItemComanda
+
+def get_top_productos(tipo_list, limit=3):
+    """Obtiene los productos más vendidos por tipo."""
+    top = ItemComanda.objects.filter(
+        producto__tipo__in=tipo_list,
+        comanda__estado='entregada'
+    ).values('producto').annotate(
+        total_vendido=Sum('cantidad')
+    ).order_by('-total_vendido')[:limit]
+    
+    ids = [t['producto'] for t in top]
+    productos = list(ProductoMenu.objects.filter(id__in=ids, habilitado=True))
+    
+    # Si no hay historial suficiente, rellenar con productos activos
+    if len(productos) < limit:
+        existentes_ids = [p.id for p in productos]
+        faltantes = ProductoMenu.objects.filter(
+            tipo__in=tipo_list,
+            habilitado=True
+        ).exclude(id__in=existentes_ids)[:limit - len(productos)]
+        productos += list(faltantes)
+    
+    return productos
+
 
 # ------------------------------------------------------------------ #
 # SESIONES DE TRABAJO                                                  #
@@ -88,10 +115,17 @@ def sesion_activa(request, pk):
             grupos_productos[tipo] = []
         grupos_productos[tipo].append(p)
 
+    top_botellas = get_top_productos(['botella'], 3)
+    top_jarras = get_top_productos(['coctel_jarra'], 3)
+    top_vasos_extras = get_top_productos(['vaso', 'extra'], 4)
+
     return render(request, 'ventas/sesion_activa.html', {
         'sesion': sesion,
         'comandas': comandas,
         'grupos_productos': grupos_productos,
+        'top_botellas': top_botellas,
+        'top_jarras': top_jarras,
+        'top_vasos_extras': top_vasos_extras,
     })
 
 
@@ -259,10 +293,11 @@ def crear_comanda(request, sesion_pk):
     referencia = request.POST.get('referencia', '')
 
     # Recopilar items del POST
-    producto_ids = request.POST.getlist('producto_id[]')
+    productos_ids = request.POST.getlist('producto_id[]')
     cantidades = request.POST.getlist('cantidad[]')
+    observaciones_op = request.POST.getlist('observacion[]')
 
-    if not producto_ids:
+    if not productos_ids:
         messages.error(request, 'Debe agregar al menos un producto.')
         return redirect('ventas:sesion_activa', pk=sesion_pk)
 
@@ -276,18 +311,21 @@ def crear_comanda(request, sesion_pk):
     )
 
     total = 0
-    for producto_id, cantidad in zip(producto_ids, cantidades):
+    for i, (producto_id, cantidad) in enumerate(zip(productos_ids, cantidades)):
         try:
             producto = ProductoMenu.objects.get(id=producto_id, habilitado=True)
             cantidad = int(cantidad)
             if cantidad <= 0:
                 continue
 
+            observacion = observaciones_op[i] if i < len(observaciones_op) else ''
+
             ItemComanda.objects.create(
                 comanda=comanda,
                 producto=producto,
                 cantidad=cantidad,
                 precio_unitario=producto.precio,
+                observacion=observacion,
             )
             total += cantidad * float(producto.precio)
         except (ProductoMenu.DoesNotExist, ValueError):
@@ -449,6 +487,7 @@ def comandas_pendientes_json(request):
                 {
                     'producto': item.producto.nombre,
                     'cantidad': item.cantidad,
+                    'observacion': item.observacion or '',
                 }
                 for item in c.items.all()
             ],

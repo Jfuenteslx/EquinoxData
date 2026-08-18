@@ -143,6 +143,11 @@ class ItemComanda(models.Model):
         max_digits=10, decimal_places=2,
         help_text="Precio al momento de la venta."
     )
+    observacion = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Nota para barra (ej: sin hielo, con limón)"
+    )
 
     class Meta:
         verbose_name = "Item de comanda"

@@ -1,336 +1,764 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2 align-items-center">
-            <div class="col-sm-6">
-                <h1 class="m-0">
-                    {% if sesion.es_barra %}
-                    <i class="fas fa-glass-martini-alt mr-2"></i>Barra
-                    {% else %}
-                    <i class="fas fa-user mr-2"></i>{{ sesion.usuario.username }}
-                    {% endif %}
-                    <small class="text-muted">— {{ sesion.evento.nombre }}</small>
-                </h1>
-            </div>
-            <div class="col-sm-6 text-right">
-                {% if not sesion.es_barra %}
-                <span id="indicador-listas" class="badge badge-secondary mr-2" style="font-size:.85rem; display:none;">
-                    <i class="fas fa-bell mr-1"></i> <span id="count-listas">0</span> lista(s) para recoger
-                </span>
-                {% endif %}
-                <form method="post" action="{% url 'ventas:cerrar_sesion' sesion.pk %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger"
-                        onclick="return confirm('¿Cerrar sesión? Asegurese de no tener comandas pendientes.')">
-                        <i class="fas fa-stop mr-1"></i> Cerrar sesión
-                    </button>
-                </form>
-            </div>
+
+<style>
+.eq-session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--eq-surface);
+  border-bottom: 1px solid var(--eq-border);
+  margin-bottom: 0;
+}
+
+.eq-session-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--eq-text-1);
+}
+
+.eq-session-sub {
+  font-size: 11px;
+  color: var(--eq-text-3);
+  margin-top: 2px;
+}
+
+.eq-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 0;
+  height: calc(100vh - 120px);
+}
+
+/* Panel izquierdo — selección de productos */
+.eq-products-panel {
+  padding: 16px;
+  overflow-y: auto;
+  border-right: 1px solid var(--eq-border);
+}
+
+/* Buscador */
+.eq-search-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.eq-search-input {
+  width: 100%;
+  background: var(--eq-surface);
+  border: 1px solid var(--eq-border-2);
+  border-radius: 10px;
+  padding: 10px 12px 10px 36px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--eq-text-1);
+  outline: none;
+}
+
+.eq-search-input:focus { border-color: var(--eq-accent); }
+.eq-search-input::placeholder { color: var(--eq-text-3); }
+
+.eq-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--eq-text-3);
+  font-size: 16px;
+}
+
+/* Resultados de búsqueda */
+.eq-search-results {
+  display: none;
+  background: var(--eq-surface);
+  border: 1px solid var(--eq-border-2);
+  border-radius: 10px;
+  margin-top: 4px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.eq-search-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--eq-border);
+  font-size: 13px;
+}
+
+.eq-search-result-item:last-child { border-bottom: none; }
+.eq-search-result-item:hover { background: #111111; }
+.eq-search-result-name { color: var(--eq-text-1); font-weight: 500; }
+.eq-search-result-price { color: var(--eq-accent); font-weight: 600; font-size: 12px; }
+
+/* Sección de botones rápidos */
+.eq-quick-section {
+  margin-bottom: 14px;
+}
+
+.eq-quick-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--eq-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eq-quick-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.eq-quick-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.eq-quick-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+.eq-quick-btn {
+  background: var(--eq-surface);
+  border: 1px solid var(--eq-border);
+  border-radius: 10px;
+  padding: 12px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+
+.eq-quick-btn:hover {
+  border-color: var(--eq-accent);
+  background: #050d1a;
+}
+
+.eq-quick-btn:active { transform: scale(0.97); }
+
+.eq-quick-btn.botella { border-top: 2px solid var(--eq-accent); }
+.eq-quick-btn.jarra   { border-top: 2px solid var(--eq-green); }
+.eq-quick-btn.vaso-extra { border-top: 2px solid var(--eq-amber); }
+
+.eq-quick-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--eq-text-1);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.eq-quick-price {
+  font-size: 11px;
+  color: var(--eq-text-3);
+}
+
+/* Panel derecho — carrito */
+.eq-cart-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--eq-surface);
+}
+
+.eq-cart-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--eq-border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--eq-text-1);
+}
+
+.eq-cart-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.eq-cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--eq-text-3);
+  font-size: 13px;
+  gap: 8px;
+}
+
+.eq-cart-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #111111;
+}
+
+.eq-cart-item-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--eq-text-1);
+}
+
+.eq-cart-item-price {
+  font-size: 12px;
+  color: var(--eq-text-3);
+  min-width: 60px;
+  text-align: right;
+}
+
+.eq-qty-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eq-qty-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--eq-border-2);
+  background: var(--eq-surface);
+  color: var(--eq-text-1);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  line-height: 1;
+}
+
+.eq-qty-btn:hover { border-color: var(--eq-accent); color: var(--eq-accent); }
+
+.eq-qty-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--eq-text-1);
+  min-width: 20px;
+  text-align: center;
+}
+
+.eq-cart-remove {
+  color: var(--eq-text-3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px;
+}
+.eq-cart-remove:hover { color: var(--eq-red); }
+
+/* Footer del carrito */
+.eq-cart-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--eq-border);
+}
+
+.eq-cart-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.eq-cart-total-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--eq-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.eq-cart-total-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--eq-green);
+}
+
+.eq-ref-input {
+  width: 100%;
+  background: var(--eq-bg);
+  border: 1px solid var(--eq-border-2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--eq-text-1);
+  margin-bottom: 10px;
+  outline: none;
+}
+
+.eq-ref-input:focus { border-color: var(--eq-accent); }
+.eq-ref-input::placeholder { color: var(--eq-text-3); }
+
+.eq-send-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--eq-accent);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.eq-send-btn:hover { background: var(--eq-accent-h); }
+.eq-send-btn:disabled { background: #333; cursor: not-allowed; }
+
+/* Comandas activas */
+.eq-comandas-section {
+  margin-top: 20px;
+}
+
+.eq-comanda-card {
+  background: var(--eq-surface);
+  border: 1px solid var(--eq-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.eq-comanda-card.lista {
+  border-left: 3px solid var(--eq-green);
+  animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+  0%, 100% { border-left-color: var(--eq-green); }
+  50% { border-left-color: #22c55e; }
+}
+
+.eq-comanda-info { flex: 1; }
+.eq-comanda-num { font-size: 12px; font-weight: 700; color: var(--eq-text-1); }
+.eq-comanda-ref { font-size: 11px; color: var(--eq-text-3); }
+.eq-comanda-items { font-size: 11px; color: var(--eq-text-2); margin-top: 4px; }
+
+.eq-comanda-right { text-align: right; }
+.eq-comanda-total { font-size: 13px; font-weight: 700; color: var(--eq-text-1); }
+
+/* Alerta de comandas listas */
+.eq-listas-alert {
+  background: #050f08;
+  border: 1px solid var(--eq-green);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--eq-green);
+}
+</style>
+
+<!-- Header de sesión -->
+<div class="eq-session-header">
+    <div>
+        <div class="eq-session-title">
+            {% if sesion.es_barra %}
+            <i class="ti ti-glass-full mr-2" style="color:var(--eq-accent);"></i>Barra
+            {% else %}
+            <i class="ti ti-user mr-2" style="color:var(--eq-accent);"></i>{{ sesion.usuario.username }}
+            {% endif %}
         </div>
+        <div class="eq-session-sub">{{ sesion.evento.nombre|truncatechars:50 }}</div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+        {% if not sesion.es_barra %}
+        <span id="indicador-listas" style="display:none;" class="badge badge-success">
+            <i class="ti ti-bell mr-1"></i><span id="count-listas">0</span> lista(s)
+        </span>
+        {% endif %}
+        <div style="font-size:13px; color:var(--eq-text-3);">
+            Total: <strong style="color:var(--eq-green);" id="total-sesion">{{ sesion.total_ventas|floatformat:2 }} bs</strong>
+        </div>
+        <form method="post" action="{% url 'ventas:cerrar_sesion' sesion.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm"
+                onclick="return confirm('¿Cerrar sesión? Asegurese de no tener comandas pendientes.')">
+                <i class="ti ti-player-stop mr-1"></i> Cerrar sesión
+            </button>
+        </form>
     </div>
 </div>
 
-<section class="content">
-    <div class="container-fluid">
-        <div class="row">
+<div class="eq-layout">
 
-            <!-- Nueva comanda -->
-            <div class="col-md-5">
+    <!-- Panel izquierdo: selección de productos -->
+    <div class="eq-products-panel">
 
-                <!-- Alerta de comandas listas -->
-                {% if not sesion.es_barra %}
-                <div id="alerta-listas" style="display:none;">
-                    <div class="alert alert-success alert-dismissible">
-                        <i class="fas fa-bell mr-2"></i>
-                        <strong>¡Hay comandas listas para recoger!</strong>
-                        <button type="button" class="close" onclick="document.getElementById('alerta-listas').style.display='none'">
-                            <span>&times;</span>
+        {% if not sesion.es_barra %}
+        <!-- Alerta comandas listas -->
+        <div class="eq-listas-alert" id="alerta-listas">
+            <i class="ti ti-bell" style="font-size:18px;"></i>
+            <span>¡Hay comandas listas para recoger!</span>
+        </div>
+        {% endif %}
+
+        <!-- Buscador en tiempo real -->
+        <div class="eq-search-wrap">
+            <i class="ti ti-search eq-search-icon"></i>
+            <input type="text" class="eq-search-input" id="buscador" placeholder="Buscar producto...">
+            <div class="eq-search-results" id="resultados-busqueda">
+                {% for tipo, productos in grupos_productos.items %}
+                {% for p in productos %}
+                <div class="eq-search-result-item" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-precio="{{ p.precio }}">
+                    <span class="eq-search-result-name">{{ p.nombre }}</span>
+                    <span class="eq-search-result-price">{{ p.precio|floatformat:2 }} bs</span>
+                </div>
+                {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Botones rápidos: Botellas -->
+        {% if top_botellas %}
+        <div class="eq-quick-section">
+            <div class="eq-quick-label">
+                <i class="ti ti-bottle" style="color:var(--eq-accent);"></i> Top botellas
+            </div>
+            <div class="eq-quick-grid cols-3">
+                {% for p in top_botellas %}
+                <button class="eq-quick-btn botella" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-precio="{{ p.precio }}">
+                    <div class="eq-quick-name">{{ p.nombre }}</div>
+                    <div class="eq-quick-price">{{ p.precio|floatformat:0 }} bs</div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Botones rápidos: Jarras/Cocteles -->
+        {% if top_jarras %}
+        <div class="eq-quick-section">
+            <div class="eq-quick-label">
+                <i class="ti ti-glass-cocktail" style="color:var(--eq-green);"></i> Top jarras / cocteles
+            </div>
+            <div class="eq-quick-grid cols-3">
+                {% for p in top_jarras %}
+                <button class="eq-quick-btn jarra" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-precio="{{ p.precio }}">
+                    <div class="eq-quick-name">{{ p.nombre }}</div>
+                    <div class="eq-quick-price">{{ p.precio|floatformat:0 }} bs</div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Botones rápidos: Vasos y extras -->
+        {% if top_vasos_extras %}
+        <div class="eq-quick-section">
+            <div class="eq-quick-label">
+                <i class="ti ti-glass" style="color:var(--eq-amber);"></i> Top vasos / extras
+            </div>
+            <div class="eq-quick-grid cols-4">
+                {% for p in top_vasos_extras %}
+                <button class="eq-quick-btn vaso-extra" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-precio="{{ p.precio }}">
+                    <div class="eq-quick-name">{{ p.nombre }}</div>
+                    <div class="eq-quick-price">{{ p.precio|floatformat:0 }} bs</div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Comandas activas -->
+        <div class="eq-comandas-section">
+            <div class="eq-quick-label" style="margin-bottom:10px;">
+                <i class="ti ti-list-check" style="color:var(--eq-text-3);"></i> Comandas de la sesión
+            </div>
+            {% for comanda in comandas %}
+            <div class="eq-comanda-card {% if comanda.estado == 'lista' %}lista{% endif %}">
+                <div class="eq-comanda-info">
+                    <div class="eq-comanda-num">
+                        #{{ comanda.id }}
+                        {% if comanda.estado == 'lista' %}
+                        <span class="badge badge-success ml-1">Lista ✓</span>
+                        {% elif comanda.estado == 'pendiente' %}
+                        <span class="badge badge-warning ml-1">En barra</span>
+                        {% elif comanda.estado == 'entregada' %}
+                        <span class="badge badge-info ml-1">Entregada</span>
+                        {% endif %}
+                    </div>
+                    {% if comanda.referencia %}<div class="eq-comanda-ref">{{ comanda.referencia }}</div>{% endif %}
+                    <div class="eq-comanda-items">
+                        {% for item in comanda.items.all %}{{ item.cantidad }}×{{ item.producto.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    </div>
+                </div>
+                <div class="eq-comanda-right">
+                    <div class="eq-comanda-total">{{ comanda.total|floatformat:2 }} bs</div>
+                    <div style="margin-top:6px; display:flex; gap:4px; justify-content:flex-end;">
+                        {% if comanda.estado == 'lista' %}
+                        <form method="post" action="{% url 'ventas:marcar_entregada' comanda.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="ti ti-check"></i> Entregar
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if comanda.estado != 'entregada' and comanda.estado != 'anulada' %}
+                        <button class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#modalAnular{{ comanda.pk }}">
+                            <i class="ti ti-x"></i>
                         </button>
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="card card-primary">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-plus mr-2"></i>Nueva comanda</h3>
-                    </div>
-                    <form method="post" action="{% url 'ventas:crear_comanda' sesion.pk %}" id="form-comanda" novalidate>
-                        {% csrf_token %}
-                        <div class="card-body">
-                            <div class="form-group">
-                                <input type="text" name="referencia" class="form-control"
-                                    placeholder="Referencia (Mesa 3, Cumpleañero...) — opcional">
-                            </div>
-                            <table class="table table-sm" id="tabla-items">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th style="width:80px;">Cant.</th>
-                                        <th style="width:30px;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="filas-items">
-                                    <tr class="fila-item">
-                                        <td>
-                                            <select name="producto_id[]" class="form-control form-control-sm" required>
-                                                <option value="">— Seleccionar —</option>
-                                                {% for tipo, productos in grupos_productos.items %}
-                                                <optgroup label="{{ tipo }}">
-                                                    {% for p in productos %}
-                                                    <option value="{{ p.id }}">{{ p.nombre }} — Bs. {{ p.precio }}</option>
-                                                    {% endfor %}
-                                                </optgroup>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input type="number" name="cantidad[]" class="form-control form-control-sm" min="1" value="1" required>
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-danger btn-sm btn-eliminar">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <button type="button" id="btn-agregar" class="btn btn-outline-success btn-sm btn-block">
-                                <i class="fas fa-plus mr-1"></i> Agregar producto
-                            </button>
-                        </div>
-                        <div class="card-footer">
-                            <button type="submit" class="btn btn-primary btn-block">
-                                <i class="fas fa-paper-plane mr-1"></i>
-                                {% if sesion.es_barra %}Registrar venta{% else %}Enviar a barra{% endif %}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Resumen rápido -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Resumen de sesión</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td>Comandas entregadas</td>
-                                <td class="text-right"><strong>{{ sesion.total_comandas }}</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Comandas anuladas</td>
-                                <td class="text-right text-danger">{{ sesion.total_anuladas }}</td>
-                            </tr>
-                            <tr class="table-success">
-                                <td><strong>Total ventas</strong></td>
-                                <td class="text-right"><strong>{{ sesion.total_ventas|floatformat:2 }} bs</strong></td>
-                            </tr>
-                        </table>
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Lista de comandas -->
-            <div class="col-md-7">
-
-                <!-- Comandas listas para recoger (solo meseros) -->
-                {% if not sesion.es_barra %}
-                <div id="seccion-listas" style="display:none;">
-                    <div class="card card-success">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-check-circle mr-2"></i>Listas para recoger</h3>
+            <!-- Modal anular -->
+            <div class="modal fade" id="modalAnular{{ comanda.pk }}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Anular Comanda #{{ comanda.pk }}</h5>
+                            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                         </div>
-                        <div class="card-body p-0" id="lista-comandas-listas">
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Todas las comandas de la sesión -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Comandas de la sesión</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        {% for comanda in comandas %}
-                        <div class="p-2 border-bottom {% if comanda.estado == 'lista' %}bg-success-light{% endif %}">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong>#{{ comanda.id }}</strong>
-                                    {% if comanda.referencia %}
-                                    <span class="text-muted ml-1">— {{ comanda.referencia }}</span>
-                                    {% endif %}
-                                    <small class="text-muted ml-2">{{ comanda.creada_en|date:"H:i" }}</small>
-                                    <br>
-                                    {% for item in comanda.items.all %}
-                                    <small>{{ item.cantidad }} × {{ item.producto.nombre }}</small>
-                                    {% if not forloop.last %}<small> | </small>{% endif %}
-                                    {% endfor %}
-                                </div>
-                                <div class="text-right">
-                                    <strong>{{ comanda.total|floatformat:2 }} bs</strong>
-                                    <br>
-                                    <span class="badge
-                                        {% if comanda.estado == 'pendiente' %}badge-warning
-                                        {% elif comanda.estado == 'lista' %}badge-success
-                                        {% elif comanda.estado == 'entregada' %}badge-primary
-                                        {% else %}badge-danger{% endif %}">
-                                        {{ comanda.get_estado_display }}
-                                    </span>
-                                    <div class="mt-1">
-                                        {% if comanda.estado == 'lista' %}
-                                        <form method="post" action="{% url 'ventas:marcar_entregada' comanda.pk %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button class="btn btn-xs btn-primary">
-                                                <i class="fas fa-check mr-1"></i>Entregar
-                                            </button>
-                                        </form>
-                                        {% endif %}
-                                        {% if comanda.estado != 'entregada' and comanda.estado != 'anulada' %}
-                                        <button class="btn btn-xs btn-danger ml-1" data-toggle="modal"
-                                            data-target="#modalAnular{{ comanda.pk }}">Anular</button>
-                                        {% endif %}
-                                    </div>
-                                </div>
+                        <form method="post" action="{% url 'ventas:anular_comanda' comanda.pk %}">
+                            {% csrf_token %}
+                            <div class="modal-body">
+                                <input type="text" name="motivo" class="form-control" placeholder="Motivo (opcional)">
+                                <small style="color:var(--eq-text-3);">Solo barra o administración puede autorizar anulaciones.</small>
                             </div>
-                        </div>
-
-                        <!-- Modal anular -->
-                        <div class="modal fade" id="modalAnular{{ comanda.pk }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-danger text-white">
-                                        <h5 class="modal-title">Anular Comanda #{{ comanda.pk }}</h5>
-                                        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-                                    </div>
-                                    <form method="post" action="{% url 'ventas:anular_comanda' comanda.pk %}">
-                                        {% csrf_token %}
-                                        <div class="modal-body">
-                                            <p>¿Motivo de la anulación?</p>
-                                            <input type="text" name="motivo" class="form-control" placeholder="Motivo (opcional)">
-                                            <small class="text-muted">Solo barra o administración puede autorizar anulaciones.</small>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                                            <button type="submit" class="btn btn-danger">Confirmar anulación</button>
-                                        </div>
-                                    </form>
-                                </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-danger">Anular</button>
                             </div>
-                        </div>
-                        {% empty %}
-                        <p class="text-center text-muted py-4">No hay comandas en esta sesión.</p>
-                        {% endfor %}
+                        </form>
                     </div>
                 </div>
             </div>
+            {% empty %}
+            <div style="text-align:center; color:var(--eq-text-3); font-size:13px; padding:20px;">
+                No hay comandas en esta sesión aún.
+            </div>
+            {% endfor %}
+        </div>
 
+    </div>
+
+    <!-- Panel derecho: carrito -->
+    <div class="eq-cart-panel">
+        <div class="eq-cart-header">
+            <i class="ti ti-shopping-cart mr-2" style="color:var(--eq-accent);"></i>
+            Comanda actual
+        </div>
+
+        <div class="eq-cart-items" id="cart-items">
+            <div class="eq-cart-empty" id="cart-empty">
+                <i class="ti ti-shopping-cart-off" style="font-size:32px; opacity:.3;"></i>
+                <span>Tocá un producto para agregarlo</span>
+            </div>
+        </div>
+
+        <div class="eq-cart-footer">
+            <div class="eq-cart-total">
+                <span class="eq-cart-total-label">Total</span>
+                <span class="eq-cart-total-value" id="cart-total">0.00 bs</span>
+            </div>
+            <input type="text" class="eq-ref-input" id="ref-input"
+                placeholder="Referencia: Mesa 3, Cumpleañero... (opcional)">
+            <form method="post" action="{% url 'ventas:crear_comanda' sesion.pk %}" id="form-comanda">
+                {% csrf_token %}
+                <input type="hidden" name="referencia" id="hidden-referencia">
+                <div id="hidden-items"></div>
+                <button type="submit" class="eq-send-btn" id="btn-enviar" disabled>
+                    <i class="ti ti-{% if sesion.es_barra %}check{% else %}send{% endif %}"></i>
+                    {% if sesion.es_barra %}Registrar venta{% else %}Enviar a barra{% endif %}
+                </button>
+            </form>
         </div>
     </div>
-</section>
+
+</div>
 
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-const opcionesProductos = `{% for tipo, productos in grupos_productos.items %}<optgroup label="{{ tipo }}">{% for p in productos %}<option value="{{ p.id }}">{{ p.nombre }} - Bs. {{ p.precio }}</option>{% endfor %}</optgroup>{% endfor %}`;
+// ── Estado del carrito ──────────────────────────────────────
+const carrito = {};
 
-// Agregar filas de productos
-document.getElementById('btn-agregar').addEventListener('click', function() {
-    const tbody = document.getElementById('filas-items');
-    const fila = document.createElement('tr');
-    fila.className = 'fila-item';
-    fila.innerHTML = `
-        <td>
-            <select name="producto_id[]" class="form-control form-control-sm" required>
-                <option value="">— Seleccionar —</option>
-                ${opcionesProductos}
-            </select>
-        </td>
-        <td><input type="number" name="cantidad[]" class="form-control form-control-sm" min="1" value="1" required></td>
-        <td><button type="button" class="btn btn-danger btn-sm btn-eliminar"><i class="fas fa-times"></i></button></td>
-    `;
-    tbody.appendChild(fila);
+function agregarProducto(id, nombre, precio) {
+    precio = parseFloat(precio);
+    if (carrito[id]) {
+        carrito[id].cantidad += 1;
+    } else {
+        carrito[id] = { nombre, precio, cantidad: 1, observacion: '' };
+    }
+    renderCarrito();
+}
+
+function cambiarCantidad(id, delta) {
+    if (!carrito[id]) return;
+    carrito[id].cantidad += delta;
+    if (carrito[id].cantidad <= 0) delete carrito[id];
+    renderCarrito();
+}
+
+function eliminarItem(id) {
+    delete carrito[id];
+    renderCarrito();
+}
+
+function renderCarrito() {
+    const container = document.getElementById('cart-items');
+    const empty = document.getElementById('cart-empty');
+    const totalEl = document.getElementById('cart-total');
+    const btnEnviar = document.getElementById('btn-enviar');
+    const hiddenItems = document.getElementById('hidden-items');
+
+    const ids = Object.keys(carrito);
+
+    if (ids.length === 0) {
+        empty.style.display = 'flex';
+        totalEl.textContent = '0.00 bs';
+        btnEnviar.disabled = true;
+        hiddenItems.innerHTML = '';
+        return;
+    }
+
+    empty.style.display = 'none';
+    btnEnviar.disabled = false;
+
+    let total = 0;
+    let itemsHTML = '<div id="cart-empty" style="display:none;"></div>';
+    let hiddenHTML = '';
+
+    ids.forEach(id => {
+        const item = carrito[id];
+        const subtotal = item.precio * item.cantidad;
+        total += subtotal;
+
+        itemsHTML += `
+        <div class="eq-cart-item" style="flex-direction:column; align-items:stretch; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div class="eq-cart-item-name">${item.nombre}</div>
+                <div class="eq-qty-control">
+                    <button type="button" class="eq-qty-btn" onclick="cambiarCantidad('${id}', -1)">−</button>
+                    <span class="eq-qty-value">${item.cantidad}</span>
+                    <button type="button" class="eq-qty-btn" onclick="cambiarCantidad('${id}', 1)">+</button>
+                </div>
+                <div class="eq-cart-item-price">${subtotal.toFixed(2)} bs</div>
+                <i class="ti ti-x eq-cart-remove" onclick="eliminarItem('${id}')"></i>
+            </div>
+            <input type="text" class="eq-ref-input" style="margin-bottom:0; font-size:11px;"
+                placeholder="Nota para barra (ej: sin hielo)..."
+                oninput="carrito['${id}'].observacion = this.value"
+                value="${item.observacion || ''}">
+        </div>`;
+
+        hiddenHTML += `<input type="hidden" name="producto_id[]" value="${id}">`;
+        hiddenHTML += `<input type="hidden" name="cantidad[]" value="${item.cantidad}">`;
+        hiddenHTML += `<input type="hidden" name="observacion[]" value="${item.observacion || ''}">`;
+    });
+
+    container.innerHTML = itemsHTML;
+    hiddenItems.innerHTML = hiddenHTML;
+    totalEl.textContent = total.toFixed(2) + ' bs';
+}
+
+// ── Botones rápidos ─────────────────────────────────────────
+document.querySelectorAll('.eq-quick-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        agregarProducto(this.dataset.id, this.dataset.nombre, this.dataset.precio);
+    });
 });
 
+// ── Buscador en tiempo real ─────────────────────────────────
+const buscador = document.getElementById('buscador');
+const resultados = document.getElementById('resultados-busqueda');
+const todosItems = document.querySelectorAll('.eq-search-result-item');
+
+buscador.addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    if (q.length < 1) {
+        resultados.style.display = 'none';
+        return;
+    }
+
+    let hayResultados = false;
+    todosItems.forEach(item => {
+        const nombre = item.dataset.nombre.toLowerCase();
+        item.style.display = nombre.includes(q) ? 'flex' : 'none';
+        if (nombre.includes(q)) hayResultados = true;
+    });
+
+    resultados.style.display = hayResultados ? 'block' : 'none';
+});
+
+document.querySelectorAll('.eq-search-result-item').forEach(item => {
+    item.addEventListener('click', function() {
+        agregarProducto(this.dataset.id, this.dataset.nombre, this.dataset.precio);
+        buscador.value = '';
+        resultados.style.display = 'none';
+    });
+});
+
+// Cerrar resultados al hacer click fuera
 document.addEventListener('click', function(e) {
-    if (e.target.closest('.btn-eliminar')) {
-        const filas = document.querySelectorAll('.fila-item');
-        if (filas.length > 1) {
-            e.target.closest('.fila-item').remove();
-        }
+    if (!e.target.closest('.eq-search-wrap')) {
+        resultados.style.display = 'none';
     }
 });
 
-{% if not sesion.es_barra %}
-// Polling de comandas listas para el mesero
-let comandasListasAnteriores = 0;
+// ── Referencia ──────────────────────────────────────────────
+document.getElementById('ref-input').addEventListener('input', function() {
+    document.getElementById('hidden-referencia').value = this.value;
+});
 
-function verificarComandasListas() {
+// ── Validar que hay items antes de enviar ───────────────────
+document.getElementById('form-comanda').addEventListener('submit', function(e) {
+    if (Object.keys(carrito).length === 0) {
+        e.preventDefault();
+        alert('Debe agregar al menos un producto.');
+        return;
+    }
+    // Actualizar hidden inputs con valores actuales del carrito
+    renderCarrito();
+});
+
+{% if not sesion.es_barra %}
+// ── Polling comandas listas ─────────────────────────────────
+let anterioresListas = 0;
+
+function verificarListas() {
     fetch("{% url 'ventas:comandas_listas_json' sesion.pk %}")
         .then(r => r.json())
         .then(data => {
             const cantidad = data.comandas.length;
             const indicador = document.getElementById('indicador-listas');
-            const seccion = document.getElementById('seccion-listas');
             const alerta = document.getElementById('alerta-listas');
-            const lista = document.getElementById('lista-comandas-listas');
 
             if (cantidad > 0) {
-                // Mostrar indicador
-                indicador.style.display = 'inline-block';
-                indicador.className = 'badge badge-success mr-2';
+                indicador.style.display = 'inline-flex';
                 document.getElementById('count-listas').textContent = cantidad;
-
-                // Mostrar sección
-                seccion.style.display = 'block';
-
-                // Mostrar alerta solo si llegó una nueva
-                if (cantidad > comandasListasAnteriores) {
-                    alerta.style.display = 'block';
+                if (cantidad > anterioresListas) {
+                    alerta.style.display = 'flex';
+                    setTimeout(() => alerta.style.display = 'none', 5000);
                 }
-
-                // Renderizar lista
-                let html = '';
-                data.comandas.forEach(c => {
-                    html += `
-                    <div class="p-2 border-bottom">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>#${c.id}</strong>
-                                ${c.referencia !== '—' ? `<span class="text-muted ml-1">— ${c.referencia}</span>` : ''}
-                                <br>
-                                ${c.items.map(i => `<small>${i.cantidad} × ${i.producto}</small>`).join(' | ')}
-                            </div>
-                            <div class="text-right">
-                                <strong>${c.total} bs</strong>
-                                <br>
-                                <form method="post" action="/ventas/comanda/${c.id}/entregada/" class="d-inline">
-                                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                                    <button type="submit" class="btn btn-xs btn-primary mt-1">
-                                        <i class="fas fa-check mr-1"></i>Entregar
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>`;
-                });
-                lista.innerHTML = html;
             } else {
                 indicador.style.display = 'none';
-                seccion.style.display = 'none';
                 alerta.style.display = 'none';
             }
-
-            comandasListasAnteriores = cantidad;
+            anterioresListas = cantidad;
         });
 }
 
-// Verificar inmediatamente y cada 8 segundos
-verificarComandasListas();
-setInterval(verificarComandasListas, 8000);
+verificarListas();
+setInterval(verificarListas, 8000);
 {% endif %}
 </script>
 {% endblock %}
