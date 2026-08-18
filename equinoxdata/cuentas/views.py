@@ -592,22 +592,22 @@ def eliminar_comprobante_qr(request, pk):
 
 @login_required
 def resumen_tiempo_real(request, pk):
-    """Endpoint JSON para el resumen general en tiempo real."""
     from django.http import JsonResponse
-    from django.db.models import Sum, Count
+    from django.db.models import Sum, F
+    from django.db.models.functions import ExtractHour
     from ventas.models import ItemComanda, SesionTrabajo
+    from decimal import Decimal
 
     cierre = get_object_or_404(CierreDiario, pk=pk)
 
     # Ventas por hora
-    from django.db.models.functions import ExtractHour
     ventas_por_hora = ItemComanda.objects.filter(
         comanda__sesion__evento=cierre.evento,
         comanda__estado='entregada'
     ).annotate(
         hora=ExtractHour('comanda__actualizada_en')
     ).values('hora').annotate(
-        total=Sum(models.F('cantidad') * models.F('precio_unitario'),
+        total=Sum(F('cantidad') * F('precio_unitario'),
                   output_field=models.DecimalField())
     ).order_by('hora')
 
@@ -619,29 +619,91 @@ def resumen_tiempo_real(request, pk):
         total_vendido=Sum('cantidad')
     ).order_by('-total_vendido')[:5]
 
-    # Sesiones activas
+    # Sesiones
     sesiones = SesionTrabajo.objects.filter(
         evento=cierre.evento
-    ).select_related('usuario')
+    ).select_related('usuario') if cierre.evento else []
 
-    sesiones_data = []
-    for s in sesiones:
-        sesiones_data.append({
-            'usuario': s.usuario.get_full_name() or s.usuario.username,
-            'es_barra': s.es_barra,
-            'estado': s.estado,
-            'total_ventas': str(s.total_ventas),
-        })
+    sesiones_data = [{
+        'usuario': s.usuario.get_full_name() or s.usuario.username,
+        'es_barra': s.es_barra,
+        'estado': s.estado,
+        'total_ventas': str(s.total_ventas),
+    } for s in sesiones]
+
+    # Cover
+    pax_total = 0
+    recaudacion_cover = Decimal('0')
+    saldo_grupo = Decimal('0')
+    saldo_bar = Decimal('0')
+    consumo_per_capita = Decimal('0')
+
+    if cierre.evento:
+        pax_total = cierre.evento.pax_total
+        recaudacion_cover = cierre.evento.recaudacion_cover
+        saldo_grupo = cierre.evento.saldo_grupo
+        saldo_bar = cierre.evento.saldo_bar
+        if pax_total > 0:
+            consumo_per_capita = cierre.total_ventas / pax_total
+
+    # Balance final
+    total_ventas = cierre.total_ventas
+    total_gastos = cierre.total_egresos_grandes + cierre.total_compras_extraordinarias + cierre.total_gastos_operativos_noche
+    total_sueldos = cierre.total_sueldos
+    reposicion = cierre.reposicion_caja_chica
+    neto_operacional = total_ventas - total_gastos - total_sueldos - reposicion
+
+    # Arqueo de dinero
+    efectivo_disponible = cierre.saldo_efectivo_dueno
+    qr_disponible = cierre.saldo_qr_dueno
+    bancos_total = cierre.total_bancos
 
     return JsonResponse({
-        'total_ventas': str(cierre.total_ventas),
-        'total_neto': str(cierre.total_neto),
-        'total_sueldos': str(cierre.total_sueldos),
-        'total_egresos': str(cierre.total_egresos_grandes),
-        'reposicion_caja': str(cierre.reposicion_caja_chica),
-        'saldo_efectivo': str(cierre.saldo_efectivo_dueno),
-        'saldo_qr': str(cierre.saldo_qr_dueno),
+        # Métricas principales
+        'total_ventas': str(total_ventas),
+        'total_gastos': str(total_gastos),
+        'total_sueldos': str(total_sueldos),
+        'reposicion_caja': str(reposicion),
+        'neto_operacional': str(neto_operacional),
+
+        # Cover
+        'pax_total': pax_total,
+        'recaudacion_cover': str(recaudacion_cover),
+        'saldo_grupo': str(saldo_grupo),
+        'saldo_bar': str(saldo_bar),
+        'consumo_per_capita': str(consumo_per_capita),
+
+        # Flujos
+        'saldo_efectivo': str(efectivo_disponible),
+        'saldo_qr': str(qr_disponible),
+        'total_bancos': str(bancos_total),
+
+        # Arqueo
+        'arqueo': {
+            'efectivo': str(efectivo_disponible),
+            'qr': str(qr_disponible),
+            'bancos': str(bancos_total),
+            'total': str(efectivo_disponible + qr_disponible + bancos_total),
+        },
+
+        # Gráfico
         'ventas_por_hora': list(ventas_por_hora),
         'top_productos': list(top_productos),
         'sesiones': sesiones_data,
+
+        # Egresos detalle
+        'egresos': {
+            'grandes': str(cierre.total_egresos_grandes),
+            'compras_ext': str(cierre.total_compras_extraordinarias),
+            'gastos_op': str(cierre.total_gastos_operativos_noche),
+            'total': str(total_gastos),
+        },
+
+        # Caja chica
+        'caja_chica': {
+            'inicial': str(cierre.caja_inicial),
+            'gastos': str(cierre.total_gastos_caja_chica),
+            'reposicion': str(reposicion),
+            'saldo': str(cierre.saldo_caja_chica),
+        },
     })
