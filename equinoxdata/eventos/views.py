@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.db.models import Q
 from django.utils.timezone import now
 from .models import Evento, EntradaCover
+from .forms import EventoForm
+
 
 @login_required
 def listar_eventos(request):
