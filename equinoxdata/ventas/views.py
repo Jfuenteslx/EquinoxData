@@ -159,26 +159,14 @@ def cerrar_sesion(request, pk):
     sesion.fecha_cierre = timezone.now()
     sesion.save()
 
-    # Crear EntregaPuntoVenta automáticamente en el cierre diario
+    # Fase 2: sincronizar EntregaPuntoVenta con el CierreDiario del evento
+    # (busca por evento, no por fecha de hoy — así funciona aunque el cierre
+    # diario aún no exista o la noche cruce la medianoche).
     try:
-        from cuentas.models import CierreDiario, EntregaPuntoVenta
-        from datetime import date
-        cierre_diario = CierreDiario.objects.filter(
-            fecha=date.today(),
-            estado='borrador'
-        ).first()
-
-        if cierre_diario:
-            EntregaPuntoVenta.objects.get_or_create(
-                cierre=cierre_diario,
-                usuario=sesion.usuario,
-                es_barra=sesion.es_barra,
-                defaults={
-                    'total_talonario': sesion.total_ventas,
-                }
-            )
-    except Exception as e:
-        pass  # No bloquear el cierre si falla la integración
+        from cuentas.services import sincronizar_entrega_sesion
+        sincronizar_entrega_sesion(sesion)
+    except Exception:
+        pass  # No bloquear el cierre de sesión si falla la integración con cuentas
 
     messages.success(
         request,

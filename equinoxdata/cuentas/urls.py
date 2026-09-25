@@ -9,6 +9,7 @@ urlpatterns = [
     path('nuevo/', views.crear_cierre, name='crear_cierre'),
     path('<int:pk>/', views.detalle_cierre, name='detalle_cierre'),
     path('<int:pk>/cerrar/', views.cerrar_cierre, name='cerrar_cierre'),
+    path('<int:pk>/sincronizar-ventas/', views.sincronizar_ventas, name='sincronizar_ventas'),
 
     # Otros ingresos
     path('<int:cierre_pk>/ingresos/agregar/', views.agregar_otro_ingreso, name='agregar_otro_ingreso'),

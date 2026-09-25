@@ -43,11 +43,12 @@ def similitud_temporal(fecha_evento_historico):
     """
     if not fecha_evento_historico:
         return 0.40
+    if hasattr(fecha_evento_historico, 'date'):
+        fecha_evento_historico = fecha_evento_historico.date()
     hoy = date.today()
     anos_diferencia = (hoy - fecha_evento_historico).days / 365.0
     factor = max(0.40, 1.0 - (anos_diferencia * 0.15))
     return round(factor, 4)
-
 
 def calcular_similitud(parametros_nuevo, caso_historico):
     """

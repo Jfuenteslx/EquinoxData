@@ -241,8 +241,31 @@ class EntregaPuntoVenta(models.Model):
     total_talonario = models.DecimalField(
         max_digits=10, decimal_places=2,
         null=True, blank=True,
-        help_text="Total de ventas según talonario."
+        help_text="Total de ventas según talonario. Se sincroniza automáticamente "
+                   "desde SesionTrabajo salvo que haya sido ajustado manualmente."
     )
+
+    # Trazabilidad del origen del total_talonario (Fase 2 — Cuentas)
+    ORIGEN_CHOICES = [
+        ('sistema', 'Sistema (automático)'),
+        ('manual', 'Ajuste manual'),
+    ]
+    origen_talonario = models.CharField(
+        max_length=10, choices=ORIGEN_CHOICES, default='sistema',
+        help_text="Indica si el total viene del cálculo automático de ventas "
+                   "o fue corregido a mano por un administrador."
+    )
+    motivo_ajuste_talonario = models.CharField(
+        max_length=300, blank=True,
+        help_text="Motivo del ajuste manual (obligatorio si un admin corrige el total)."
+    )
+    ajustado_por = models.ForeignKey(
+        'usuarios.Usuario',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='ajustes_talonario'
+    )
+    fecha_ajuste_talonario = models.DateTimeField(null=True, blank=True)
 
     comprobante = models.ImageField(
         upload_to='comprobantes/%Y/%m/',

@@ -28,10 +28,23 @@
                             <div class="form-group">
                                 <label>Total talonario (bs)</label>
                                 <input type="number" name="total_talonario" class="form-control"
-                                    step="0.01" min="0"
+                                    step="0.01" min="0" {% if not es_admin %}readonly{% endif %}
                                     value="{{ entrega.total_talonario|default:'' }}">
-                                <small class="text-muted">Total de ventas según talonario</small>
+                                <small class="text-muted">
+                                    Se sincroniza automáticamente desde ventas.
+                                    {% if entrega.origen_talonario == 'manual' %}
+                                        Ajustado manualmente por {{ entrega.ajustado_por }}: "{{ entrega.motivo_ajuste_talonario }}"
+                                    {% elif not es_admin %}
+                                        Solo un administrador puede corregirlo.
+                                    {% endif %}
+                                </small>
                             </div>
+                            {% if es_admin %}
+                            <div class="form-group">
+                                <label>Motivo del ajuste (si cambiaste el talonario)</label>
+                                <input type="text" name="motivo_ajuste_talonario" class="form-control" maxlength="300">
+                            </div>
+                            {% endif %}
 
                             <hr>
                             <p class="text-muted mb-2"><strong>Desglose de entrega</strong></p>

@@ -494,7 +494,17 @@
 
   <!-- Entregas por punto de venta -->
   <div class="card mb-3">
-    <div class="card-header"><span class="card-title">Entregas por punto de venta</span></div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="card-title">Entregas por punto de venta</span>
+      {% if cierre.estado == 'borrador' %}
+      <form method="post" action="{% url 'cuentas:sincronizar_ventas' cierre.pk %}" class="mb-0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary btn-sm" title="Fuerza la sincronización con las sesiones de ventas cerradas">
+          <i class="ti ti-refresh mr-1"></i> Sincronizar ventas
+        </button>
+      </form>
+      {% endif %}
+    </div>
     <div class="card-body p-0">
       <table class="table table-hover mb-0">
         <thead>
@@ -516,7 +526,12 @@
               {% if e.es_barra %}<span class="badge badge-dark">Barra</span>
               {% else %}<i class="ti ti-user mr-1" style="color:var(--eq-text-3);"></i>{{ e.nombre_display }}{% endif %}
             </td>
-            <td class="text-right">{{ e.total_talonario|floatformat:2|default:"—" }} bs</td>
+            <td class="text-right">
+              {{ e.total_talonario|floatformat:2|default:"—" }} bs
+              {% if e.origen_talonario == 'manual' %}
+              <i class="ti ti-edit ml-1" style="color:var(--eq-amber);" title="Ajustado manualmente por {{ e.ajustado_por }}: {{ e.motivo_ajuste_talonario }}"></i>
+              {% endif %}
+            </td>
             <td class="text-right">{{ e.efectivo|floatformat:2 }} bs</td>
             <td class="text-right">{{ e.qr|floatformat:2 }} bs</td>
             <td class="text-right">{{ e.voucher_banco|floatformat:2 }} bs</td>
@@ -870,7 +885,7 @@
     </div>
     <div class="eq-popup-body">
       <div style="margin-bottom:16px;">
-        <div style="font-size:11px; color:var(--eq-text-3); margin-bottom:4px;">Total talonario</div>
+        <div style="font-size:11px; color:var(--eq-text-3); margin-bottom:4px;">Total talonario (según sistema)</div>
         <div style="font-size:24px; font-weight:700; color:var(--eq-green);" id="consolidar-talonario">0.00 bs</div>
       </div>
       <form method="post" id="form-consolidar" action="">
@@ -889,10 +904,24 @@
             <input type="number" name="voucher_banco" class="form-control" step="0.01" min="0" value="0">
           </div>
         </div>
+        {% if es_admin %}
         <div class="form-group">
-          <label>Total talonario (confirmar)</label>
+          <label>Total talonario (corregir)</label>
           <input type="number" name="total_talonario" class="form-control" step="0.01" min="0" id="consolidar-total-input">
+          <small style="color:var(--eq-text-3);">Se sincroniza solo desde ventas. Cambiar este valor requiere motivo.</small>
         </div>
+        <div class="form-group" id="consolidar-motivo-wrap" style="display:none;">
+          <label>Motivo del ajuste</label>
+          <input type="text" name="motivo_ajuste_talonario" class="form-control" maxlength="300" placeholder="Ej: faltó registrar una comanda de barra">
+        </div>
+        {% else %}
+        <input type="hidden" name="total_talonario" id="consolidar-total-input">
+        <div class="form-group">
+          <label>Total talonario</label>
+          <input type="text" class="form-control" id="consolidar-total-display" readonly style="background:var(--eq-surface-2);">
+          <small style="color:var(--eq-text-3);">Solo un administrador puede corregir este valor.</small>
+        </div>
+        {% endif %}
       </form>
     </div>
     <div class="eq-popup-footer">
@@ -957,6 +986,8 @@
   </div>
 </div>
 
+{{ entregas_por_usuario|json_script:"entregas-talonario-data" }}
+
 <!-- Popup Sueldo -->
 <div class="eq-popup-overlay" id="popup-sueldo">
   <div class="eq-popup">
@@ -976,7 +1007,7 @@
         </div>
         <div class="form-group" id="divEmpleado">
           <label>Empleado</label>
-          <select name="empleado" class="form-control">
+          <select name="empleado" class="form-control" id="selectEmpleadoSueldo" onchange="autocompletarCajaMesero(this)">
             <option value="">— Seleccionar —</option>
             {% for u in usuarios_sistema %}
             <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.get_rol_display }})</option>
@@ -1007,8 +1038,8 @@
           <div class="col-md-8" id="campoPorcentaje">
             <div class="form-row">
               <div class="form-group col-md-6">
-                <label>Caja total</label>
-                <input type="number" name="caja_mesero" class="form-control" step="0.01" min="0">
+                <label>Caja total <small style="color:var(--eq-text-3);">(sugerido desde ventas)</small></label>
+                <input type="number" name="caja_mesero" class="form-control" step="0.01" min="0" id="inputCajaMesero">
               </div>
               <div class="form-group col-md-6">
                 <label>% comisión</label>
@@ -1205,6 +1236,24 @@ function abrirConsolidar(entregaPk, nombre, talonario) {
     document.getElementById('consolidar-talonario').textContent = talonario + ' bs';
     document.getElementById('consolidar-total-input').value = talonario;
     document.getElementById('form-consolidar').action = '/cuentas/entregas/' + entregaPk + '/editar/';
+
+    const displayField = document.getElementById('consolidar-total-display');
+    if (displayField) {
+        // Usuario no-admin: solo lectura, informativo.
+        displayField.value = talonario + ' bs';
+    }
+
+    const motivoWrap = document.getElementById('consolidar-motivo-wrap');
+    if (motivoWrap) {
+        // Usuario admin: mostrar el campo de motivo solo si toca el valor.
+        motivoWrap.style.display = 'none';
+        const totalInput = document.getElementById('consolidar-total-input');
+        totalInput.oninput = function () {
+            const cambio = parseFloat(totalInput.value) !== parseFloat(talonario);
+            motivoWrap.style.display = cambio ? 'block' : 'none';
+        };
+    }
+
     abrirPopup('popup-consolidar');
 }
 
@@ -1214,6 +1263,17 @@ document.querySelectorAll('.eq-popup-overlay').forEach(overlay => {
         if (e.target === this) cerrarPopup(this.id);
     });
 });
+
+// ── Fase 2: sugerir caja_mesero desde la entrega de ventas del empleado ──
+const entregasTalonarioData = JSON.parse(document.getElementById('entregas-talonario-data').textContent || '{}');
+function autocompletarCajaMesero(select) {
+    const input = document.getElementById('inputCajaMesero');
+    const valor = entregasTalonarioData[select.value];
+    if (valor !== undefined) {
+        input.value = valor;
+    }
+    // Si no hay entrega para este empleado (ej: personal sin sesión de ventas), se deja como está para llenado manual.
+}
 
 // ── Toggle sueldo ─────────────────────────────────────────────
 function togglePersonaLibre(cb) {

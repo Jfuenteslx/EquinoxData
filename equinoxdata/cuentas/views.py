@@ -1,18 +1,25 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from decimal import Decimal
+from django.db import models
+from django.utils import timezone
+from decimal import Decimal, InvalidOperation
 
 from .models import (
     CierreDiario, OtroIngreso, MovimientoCajaChica, EgresoGrande,
     SueldoNoche, EntregaPuntoVenta, CierreBancario, ResumenSemanal,
     GastoFijo
 )
+from .services import sincronizar_ventas_cierre
 from usuarios.models import Usuario
 
 
 def solo_admin_jefe(user):
     return user.rol in ['administrador', 'jefe_barra']
+
+
+def solo_admin(user):
+    return user.rol == 'administrador'
 
 
 # ------------------------------------------------------------------ #
@@ -77,6 +84,10 @@ def detalle_cierre(request, pk):
     usuarios_sistema = Usuario.objects.filter(rol__in=['mesero', 'bartender'])
     personal_sistema = Usuario.objects.filter(rol__in=['administrador', 'jefe_barra', 'bartender'])
 
+    # Fase 2: sincronizar automáticamente EntregaPuntoVenta con las sesiones
+    # de ventas cerradas de este evento (no toca ajustes manuales ni cierres ya cerrados).
+    sincronizar_ventas_cierre(cierre)
+
     # Pedidos extraordinarios de esta noche
     try:
         from compras.models import Pedido
@@ -95,19 +106,30 @@ def detalle_cierre(request, pk):
         ).select_related('usuario') if cierre.evento else []
     except Exception:
         sesiones = []
-        
+
+    entregas = cierre.entregas_punto_venta.all()
+
+    # Fase 2: mapa usuario_id -> total_talonario, para autocompletar "caja_mesero"
+    # como sugerencia editable al registrar un sueldo (no queda atado, el admin puede corregir).
+    entregas_por_usuario = {
+        str(e.usuario_id): str(e.total_talonario)
+        for e in entregas if e.usuario_id and e.total_talonario is not None
+    }
+
     context = {
         'cierre': cierre,
         'otros_ingresos': cierre.otros_ingresos.all(),
         'movimientos_caja': cierre.movimientos_caja_chica.all().order_by('id'),
         'egresos_grandes': cierre.egresos_grandes.all(),
         'sueldos': cierre.sueldos.all(),
-        'entregas': cierre.entregas_punto_venta.all(),
+        'entregas': entregas,
+        'entregas_por_usuario': entregas_por_usuario,
         'cierres_bancarios': cierre.cierres_bancarios.all(),
         'pedidos_ext': pedidos_ext,
         'usuarios_sistema': usuarios_sistema,
         'personal_sistema': personal_sistema,
         'sesiones': sesiones,
+        'es_admin': solo_admin(request.user),
     }
 
 
@@ -140,6 +162,26 @@ def cerrar_cierre(request, pk):
             )
 
         messages.success(request, f'Cierre del {cierre.fecha} cerrado correctamente.')
+    return redirect('cuentas:detalle_cierre', pk=pk)
+
+
+@login_required
+def sincronizar_ventas(request, pk):
+    """Botón de respaldo: fuerza la sincronización de EntregaPuntoVenta
+    con SesionTrabajo, por si el auto-sync de detalle_cierre no alcanzó
+    a cubrir un caso (ej: se corrigió una comanda justo antes)."""
+    if not solo_admin_jefe(request.user):
+        messages.error(request, 'No tiene permisos.')
+        return redirect('usuarios:inicio')
+    cierre = get_object_or_404(CierreDiario, pk=pk)
+    if cierre.estado == 'cerrado':
+        messages.warning(request, 'Este cierre ya está cerrado, no se puede sincronizar.')
+    else:
+        actualizadas = sincronizar_ventas_cierre(cierre)
+        if actualizadas:
+            messages.success(request, f'Sincronización completa: {actualizadas} entrega(s) actualizada(s).')
+        else:
+            messages.info(request, 'Todo ya estaba sincronizado.')
     return redirect('cuentas:detalle_cierre', pk=pk)
 
 
@@ -383,8 +425,37 @@ def editar_entrega(request, pk):
         entrega.efectivo = request.POST.get('efectivo') or 0
         entrega.qr = request.POST.get('qr') or 0
         entrega.voucher_banco = request.POST.get('voucher_banco') or 0
-        entrega.total_talonario = request.POST.get('total_talonario') or None
         entrega.observacion = request.POST.get('observacion', '')
+
+        # Fase 2: el total_talonario lo mantiene sincronizado el sistema.
+        # Solo un administrador puede corregirlo a mano, y solo indicando un motivo.
+        talonario_raw = request.POST.get('total_talonario')
+        motivo = (request.POST.get('motivo_ajuste_talonario') or '').strip()
+        try:
+            talonario_nuevo = Decimal(talonario_raw) if talonario_raw not in (None, '') else None
+        except InvalidOperation:
+            talonario_nuevo = None
+
+        if talonario_nuevo is not None and talonario_nuevo != entrega.total_talonario:
+            if not solo_admin(request.user):
+                messages.warning(
+                    request,
+                    'Solo un administrador puede corregir el total del talonario. '
+                    'Se guardó el resto de la entrega sin modificar ese valor.'
+                )
+            elif not motivo:
+                messages.error(
+                    request,
+                    'Para corregir el talonario manualmente debes indicar un motivo. '
+                    'No se modificó ese valor; se guardó el resto de la entrega.'
+                )
+            else:
+                entrega.total_talonario = talonario_nuevo
+                entrega.origen_talonario = 'manual'
+                entrega.motivo_ajuste_talonario = motivo
+                entrega.ajustado_por = request.user
+                entrega.fecha_ajuste_talonario = timezone.now()
+
         if request.FILES.get('comprobante'):
             entrega.comprobante = request.FILES.get('comprobante')
         entrega.save()
@@ -393,6 +464,7 @@ def editar_entrega(request, pk):
     return render(request, 'cuentas/editar_entrega.html', {
         'entrega': entrega,
         'cierre': cierre,
+        'es_admin': solo_admin(request.user),
     })
 
 
